@@ -1,13 +1,14 @@
 // include Fake libs
 #r "./packages/FAKE/tools/FakeLib.dll"
 
+open System.IO
 open Fake
 open Fake.Testing.Expecto
 
 // Directories
 let buildDir = "./build/"
-let appOutDir = buildDir + "Indy"
-let testsOutDir = buildDir + "tests"
+let appOutDir = buildDir + "Indy/"
+let testsOutDir = buildDir + "tests/"
 let deployDir = "./deploy/"
 
 
@@ -30,6 +31,8 @@ Target "Clean" (fun _ ->
 Target "Build" (fun _ ->
     MSBuildRelease appOutDir "Build" appReferences
     |> Log "Build-Output: "
+
+    CopyFile (Path.Combine(appOutDir, "argu.license.html")) "packages/Argu/license.html"
 )
 
 Target "Test" (fun _ ->
@@ -48,7 +51,14 @@ Target "Deploy" (fun _ ->
 // Build order
 "Clean"
   ==> "Build"
+
+"Clean"
   ==> "Test"
+
+"Build"
+  ==> "Deploy"
+
+"Test"
   ==> "Deploy"
 
 // start build
