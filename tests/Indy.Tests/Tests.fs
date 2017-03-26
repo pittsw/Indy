@@ -18,7 +18,7 @@ let basicSearchTests =
     testList "basicSearchTests" [
         testCase "basicTypeSearch" <| fun _ ->
             Expect.equal
-                (search args "SearchTargetType") 
+                (search args ["SearchTargetType"]) 
                 ([{
                     Name = "SearchTargetType"
                     FullName = "Indy.Tests.Tests/SearchTargetType"

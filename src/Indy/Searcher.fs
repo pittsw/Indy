@@ -1,8 +1,8 @@
 module Indy.Searcher
 
 open System
+open System.Collections.Generic
 open System.IO
-open System.Reflection
 
 open Mono.Cecil
 
@@ -21,7 +21,8 @@ type SearchArgs = {
     Directory : string
 }
 
-let search args name =
+let search args (names : string seq) =
+    let allNames = HashSet<string>(names, StringComparer.OrdinalIgnoreCase)
     let searchDll (dllPath : string) : SearchResult seq =
         let rec getAllTypes (t : TypeDefinition) =
             seq {
@@ -34,9 +35,9 @@ let search args name =
         moduleDef.Types
         |> Seq.collect getAllTypes
         |> Seq.choose (fun typeDefinition ->
-            if typeDefinition.Name = name then
+            if allNames.Contains(typeDefinition.Name) then
                 Some {
-                    Name = name
+                    Name = typeDefinition.Name
                     FullName = typeDefinition.FullName
                     AssemblyName = moduleDef.Name
                     AssemblyPath = dllPath
