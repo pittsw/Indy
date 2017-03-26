@@ -1,4 +1,4 @@
-module Indy.Tests
+module Indy.Tests.Main
 
 open Expecto
 

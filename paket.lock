@@ -2,10 +2,12 @@ FRAMEWORK: NET45
 NUGET
   remote: https://www.nuget.org/api/v2
     Argu (3.7)
-    Expecto (4.0.3)
+    Expecto (4.1)
       Argu (>= 3.2)
       FSharp.Core (>= 3.1.2.5)
       Mono.Cecil (>= 0.9.6.4)
+    Expecto.VisualStudio.TestAdapter (4.0.0-alpha007) - version_in_path: true
+      Expecto (>= 4.0 < 5.0)
     FAKE (4.56)
     FSharp.Core (4.1.0.2)
       System.ValueTuple (>= 4.3)

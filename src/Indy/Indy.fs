@@ -1,13 +1,9 @@
-module Indy
+module Indy.Main
 
 open Argu
 
 type SearchType =
-    | Class
-    | Enum
-    | Method
-    | Field
-    | Property
+    | Type
 
 type Arguments =
     | [<AltCommandLine("-n"); MainCommand; ExactlyOnce; Last>] Name of string list
@@ -19,10 +15,10 @@ with
     interface IArgParserTemplate with
         member s.Usage =
             match s with
-            | Name _ -> "The name(s) that you wish to search for."
+            | Name _ -> "The name of the item that you wish to search for."
             | Directory _ -> "Directories in which to search."
-            | Search _ -> "The variety of thing you're searching for. If none are specified, all are searched."
-            | Hint _ -> "A hint of the namespace or DLL name. Results are ranked in the number of hints they match."
+            | Search _ -> "The variety of thing you're searching for.  Default: Class."
+            | Hint _ -> "A hint of the namespace or DLL name.  Results are ranked in the number of hints they match."
             | TopDirectory -> "Search only the top directory, not recursively."
 
 [<EntryPoint>]
@@ -30,7 +26,8 @@ let main argv =
     let parser = ArgumentParser.Create<Arguments>(programName = "Indy.exe")
     let usage = parser.PrintUsage()
     try
-        printfn "Args: %A" ((parser.Parse argv).GetAllResults())
+        let args = (parser.Parse argv).GetAllResults()
+        printfn "Args: %A" args
     with
     | :? ArguParseException as e -> printfn "%s" e.Message
     0 // return an integer exit code
