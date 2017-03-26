@@ -33,6 +33,7 @@ Target "Build" (fun _ ->
     |> Log "Build-Output: "
 
     CopyFile (Path.Combine(appOutDir, "argu.license.html")) "packages/Argu/license.html"
+    CopyFile (Path.Combine(appOutDir, "mono.cecil.license.html")) "packages/Mono.Cecil/license.html"
 )
 
 Target "Test" (fun _ ->

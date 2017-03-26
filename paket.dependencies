@@ -6,3 +6,4 @@ nuget Expecto
 nuget Expecto.VisualStudio.TestAdapter version_in_path: true
 nuget FAKE
 nuget FSharp.Core
+nuget Mono.Cecil

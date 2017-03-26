@@ -7,6 +7,11 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Indy", "src\Indy\Indy.fspro
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Indy.Tests", "tests\Indy.Tests\Indy.Tests.fsproj", "{E3531339-54F1-44C1-B47C-DE418F748F4E}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E72BAE01-9504-42E6-9A53-9565D70D23F8}"
+	ProjectSection(SolutionItems) = preProject
+		paket.dependencies = paket.dependencies
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
