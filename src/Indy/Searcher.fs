@@ -4,12 +4,14 @@ open System
 open System.IO
 open System.Reflection
 
+open Mono.Cecil
+
 type Item =
     | Class
 
 type SearchResult = {
     Name : string
-    Namespace : string
+    FullName : string
     AssemblyName : string
     AssemblyPath : string
     Item : Item
@@ -20,15 +22,23 @@ type SearchArgs = {
 }
 
 let search args name =
-    let searchDll dllPath : SearchResult seq =
-        let assembly = Assembly.ReflectionOnlyLoadFrom(dllPath)
-        assembly.DefinedTypes
-        |> Seq.choose (fun typeinfo ->
-            if typeinfo.Name = name then
+    let searchDll (dllPath : string) : SearchResult seq =
+        let rec getAllTypes (t : TypeDefinition) =
+            seq {
+                yield t
+                for nt in t.NestedTypes do
+                    yield! getAllTypes nt
+            }
+
+        let moduleDef = ModuleDefinition.ReadModule(dllPath)
+        moduleDef.Types
+        |> Seq.collect getAllTypes
+        |> Seq.choose (fun typeDefinition ->
+            if typeDefinition.Name = name then
                 Some {
                     Name = name
-                    Namespace = typeinfo.Namespace
-                    AssemblyName = assembly.FullName
+                    FullName = typeDefinition.FullName
+                    AssemblyName = moduleDef.Name
                     AssemblyPath = dllPath
                     Item = Class
                 }

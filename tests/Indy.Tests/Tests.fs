@@ -21,7 +21,7 @@ let basicSearchTests =
                 (search args "SearchTargetType") 
                 ([{
                     Name = "SearchTargetType"
-                    Namespace = "Indy.Tests.Tests"
+                    FullName = "Indy.Tests.Tests/SearchTargetType"
                     AssemblyName = "Indy.Tests.exe"
                     AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
                     Item = Class
