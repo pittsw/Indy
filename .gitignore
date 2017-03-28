@@ -3,6 +3,7 @@
 
 # Indy-specific
 build/
+deploy/
 
 # User-specific files
 *.suo
