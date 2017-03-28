@@ -16,22 +16,42 @@ type SearchTargetType() =
             FullName = "Indy.Tests.Tests/SearchTargetType"
             AssemblyName = "Indy.Tests.exe"
             AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-            Item = Class
+            Type = Class
         }
 
 [<Tests>]
 let basicSearchTests =
-    let defaultArgs = { Directory = curDir; TopOnly = false }
+    let defaultArgs = { Directory = curDir; NoRecurse = false; Types = [Class] }
     testList "basicSearchTests" [
-        testCase "basicTypeSearch" <| fun _ ->
+        testCase "basic type search" <| fun _ ->
             Expect.equal
                 (search defaultArgs [SearchTargetType.Name]) 
                 ([SearchTargetType.Expected])
                 "Basic type search test."
-        testCase "directory_specification" <| fun _ ->
-            let args = { defaultArgs with Directory = Path.GetDirectoryName(curDir); TopOnly = true }
+
+        testCase "directory specification" <| fun _ ->
+            let args = { defaultArgs with Directory = Path.GetDirectoryName(curDir); NoRecurse = true }
             Expect.equal
                 (search args [SearchTargetType.Name])
                 ([])
                 "Searching with TopOnly should exclude child directories."
+
+        testCase "different item types" <| fun _ ->
+            let searchTargetName = "search"
+            Expect.equal
+                (search defaultArgs [searchTargetName]) 
+                ([SearchTargetType.Expected])
+                "Class search."
+            Expect.equal
+                (search { defaultArgs with Types = [Function] } [searchTargetName]) 
+                ([
+                    {
+                        Name = "searchTargetFunction"
+                        FullName = "Indy.Tests.Tests/searchTargetFunction"
+                        AssemblyName = "Indy.Tests.exe"
+                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
+                        Type = Function
+                    }
+                ])
+                "Function search."
     ]

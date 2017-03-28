@@ -6,20 +6,22 @@ open System.IO
 
 open Mono.Cecil
 
-type Item =
+type Type =
     | Class
+    | Function
 
 type SearchResult = {
     Name : string
     FullName : string
     AssemblyName : string
     AssemblyPath : string
-    Item : Item
+    Type : Type
 }
 
 type SearchArgs = {
     Directory : string
-    TopOnly : bool
+    Types : Type list
+    NoRecurse : bool
 }
 
 let search args (names : string seq) =
@@ -42,12 +44,12 @@ let search args (names : string seq) =
                     FullName = typeDefinition.FullName
                     AssemblyName = moduleDef.Name
                     AssemblyPath = dllPath
-                    Item = Class
+                    Type = Class
                 }
             else
                 None)
 
-    let searchOption = if args.TopOnly then SearchOption.TopDirectoryOnly else SearchOption.AllDirectories
+    let searchOption = if args.NoRecurse then SearchOption.TopDirectoryOnly else SearchOption.AllDirectories
     let searchAll pat = Directory.EnumerateFiles(args.Directory, pat, searchOption)
     seq {
         yield! searchAll "*.dll"
