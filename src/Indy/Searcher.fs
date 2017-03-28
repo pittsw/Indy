@@ -19,6 +19,7 @@ type SearchResult = {
 
 type SearchArgs = {
     Directory : string
+    TopOnly : bool
 }
 
 let search args (names : string seq) =
@@ -46,7 +47,8 @@ let search args (names : string seq) =
             else
                 None)
 
-    let searchAll pat = Directory.EnumerateFiles(args.Directory, pat, SearchOption.AllDirectories)
+    let searchOption = if args.TopOnly then SearchOption.TopDirectoryOnly else SearchOption.AllDirectories
+    let searchAll pat = Directory.EnumerateFiles(args.Directory, pat, searchOption)
     seq {
         yield! searchAll "*.dll"
         yield! searchAll "*.exe"
