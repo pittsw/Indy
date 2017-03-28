@@ -19,6 +19,8 @@ type SearchTargetType() =
             Type = Class
         }
 
+    static member SearchTargetMethod() = ()
+
 [<Tests>]
 let basicSearchTests =
     let defaultArgs = { Directory = curDir; NoRecurse = false; Types = [Class] }
@@ -37,20 +39,19 @@ let basicSearchTests =
                 "Searching with TopOnly should exclude child directories."
 
         testCase "different item types" <| fun _ ->
-            let searchTargetName = "search"
             Expect.equal
-                (search defaultArgs [searchTargetName]) 
+                (search defaultArgs [SearchTargetType.Name]) 
                 ([SearchTargetType.Expected])
                 "Class search."
             Expect.equal
-                (search { defaultArgs with Types = [Function] } [searchTargetName]) 
+                (search { defaultArgs with Types = [Method] } ["SearchTarget"]) 
                 ([
                     {
-                        Name = "searchTargetFunction"
-                        FullName = "Indy.Tests.Tests/searchTargetFunction"
+                        Name = "SearchTargetMethod"
+                        FullName = "System.Void Indy.Tests.Tests/SearchTargetType::SearchTargetMethod()"
                         AssemblyName = "Indy.Tests.exe"
                         AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        Type = Function
+                        Type = Method
                     }
                 ])
                 "Function search."

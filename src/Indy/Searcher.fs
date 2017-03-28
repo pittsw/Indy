@@ -8,7 +8,7 @@ open Mono.Cecil
 
 type Type =
     | Class
-    | Function
+    | Method
 
 type SearchResult = {
     Name : string
@@ -37,17 +37,39 @@ let search args (names : string seq) =
         let moduleDef = ModuleDefinition.ReadModule(dllPath)
         moduleDef.Types
         |> Seq.collect getAllTypes
-        |> Seq.choose (fun typeDefinition ->
-            if allNames |> Array.exists (fun name -> typeDefinition.Name.ToLower().Contains(name)) then
-                Some {
-                    Name = typeDefinition.Name
-                    FullName = typeDefinition.FullName
+        |> Seq.collect (fun typeDefinition ->
+            let isMatch (foundName : string) ``type`` =
+                allNames
+                |> Array.exists (fun name ->
+                    foundName.ToLower().Contains(name)
+                    && args.Types |> List.contains ``type``)
+
+            let makeSearchResult ``type`` (mem : MemberReference) =
+                {
+                    Name = mem.Name
+                    FullName = mem.FullName
                     AssemblyName = moduleDef.Name
                     AssemblyPath = dllPath
-                    Type = Class
+                    Type = ``type``
                 }
-            else
-                None)
+
+            let matchMethod names (func : MethodDefinition) =
+                if isMatch func.Name Method then
+                    Some (makeSearchResult Method (func :> MemberReference))
+                else
+                    None
+            
+            let typePart =
+                if isMatch typeDefinition.Name Class then
+                    [makeSearchResult Class typeDefinition]
+                else
+                    []
+
+            let methodParts =
+                typeDefinition.Methods
+                |> Seq.choose (matchMethod allNames)
+                |> List.ofSeq
+            typePart @ methodParts)
 
     let searchOption = if args.NoRecurse then SearchOption.TopDirectoryOnly else SearchOption.AllDirectories
     let searchAll pat = Directory.EnumerateFiles(args.Directory, pat, searchOption)
