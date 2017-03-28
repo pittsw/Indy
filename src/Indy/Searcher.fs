@@ -25,7 +25,7 @@ type SearchArgs = {
 }
 
 let search args (names : string seq) =
-    let allNames = HashSet<string>(names, StringComparer.OrdinalIgnoreCase)
+    let allNames = names |> Seq.map (fun s -> s.ToLower()) |> Array.ofSeq
     let searchDll (dllPath : string) : SearchResult seq =
         let rec getAllTypes (t : TypeDefinition) =
             seq {
@@ -38,7 +38,7 @@ let search args (names : string seq) =
         moduleDef.Types
         |> Seq.collect getAllTypes
         |> Seq.choose (fun typeDefinition ->
-            if allNames.Contains(typeDefinition.Name) then
+            if allNames |> Array.exists (fun name -> typeDefinition.Name.ToLower().Contains(name)) then
                 Some {
                     Name = typeDefinition.Name
                     FullName = typeDefinition.FullName
