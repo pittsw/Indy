@@ -46,7 +46,7 @@ Target "Test" (fun _ ->
 
 Target "Deploy" (fun _ ->
     !! (appOutDir + "/**/*.*")
-    |> Zip buildDir (deployDir + "Indy." + version + ".zip")
+    |> Zip buildDir (deployDir + "Indy.NET." + version + ".zip")
 )
 
 // Build order
