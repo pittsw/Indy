@@ -20,6 +20,7 @@ type SearchTargetType() =
         }
 
     static member SearchTargetMethod() = ()
+    member val SearchTargetProperty = 0 with get, set
 
 [<Tests>]
 let basicSearchTests =
@@ -54,5 +55,17 @@ let basicSearchTests =
                         Type = Method
                     }
                 ])
-                "Function search."
+                "Method search."
+            Expect.equal
+                (search { defaultArgs with Types = [Property] } ["SearchTarget"]) 
+                ([
+                    {
+                        Name = "SearchTargetProperty"
+                        FullName = "System.Int32 Indy.Tests.Tests/SearchTargetType::SearchTargetProperty()"
+                        AssemblyName = "Indy.Tests.exe"
+                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
+                        Type = Property
+                    }
+                ])
+                "Property search."
     ]

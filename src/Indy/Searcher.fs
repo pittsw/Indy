@@ -9,6 +9,7 @@ open Mono.Cecil
 type Type =
     | Class
     | Method
+    | Property
 
 type SearchResult = {
     Name : string
@@ -34,43 +35,43 @@ let search args (names : string seq) =
                     yield! getAllTypes nt
             }
 
+        let getAllMatchingMembers (moduleDef : ModuleDefinition) (typeDefinition : TypeDefinition) =
+            let makeSearchResult ``type`` (mem : MemberReference) =
+                {
+                    Name = mem.Name
+                    FullName = mem.FullName
+                    AssemblyName = moduleDef.Name
+                    AssemblyPath = dllPath
+                    Type = ``type``
+                }
+
+            let matchRef ``type`` (ref : MemberReference) =
+                let isMatch =
+                    let lowerName = ref.Name.ToLower()
+                    allNames
+                    |> Array.exists (fun name -> lowerName.Contains(name))
+                if isMatch then
+                    Some (makeSearchResult ``type`` ref)
+                else
+                    None
+
+            let getRefParts ``type`` =
+                match ``type`` with
+                | Class -> [typeDefinition] |> Seq.cast<MemberReference>
+                | Method ->
+                    typeDefinition.Methods
+                    |> Seq.filter (fun m -> not m.IsSetter && not m.IsGetter)
+                    |> Seq.cast<MemberReference>
+                | Property -> typeDefinition.Properties |> Seq.cast<MemberReference>
+            
+            args.Types
+            |> Seq.collect (fun t -> getRefParts t |> Seq.choose (matchRef t))
+
         try
             let moduleDef = ModuleDefinition.ReadModule(dllPath)
             moduleDef.Types
             |> Seq.collect getAllTypes
-            |> Seq.collect (fun typeDefinition ->
-                let isMatch (foundName : string) ``type`` =
-                    allNames
-                    |> Array.exists (fun name ->
-                        foundName.ToLower().Contains(name)
-                        && args.Types |> List.contains ``type``)
-
-                let makeSearchResult ``type`` (mem : MemberReference) =
-                    {
-                        Name = mem.Name
-                        FullName = mem.FullName
-                        AssemblyName = moduleDef.Name
-                        AssemblyPath = dllPath
-                        Type = ``type``
-                    }
-
-                let matchMethod (func : MethodDefinition) =
-                    if isMatch func.Name Method then
-                        Some (makeSearchResult Method (func :> MemberReference))
-                    else
-                        None
-            
-                let typePart =
-                    if isMatch typeDefinition.Name Class then
-                        [makeSearchResult Class typeDefinition]
-                    else
-                        []
-
-                let methodParts =
-                    typeDefinition.Methods
-                    |> Seq.choose matchMethod
-                    |> List.ofSeq
-                typePart @ methodParts)
+            |> Seq.collect (getAllMatchingMembers moduleDef)
             with
             | e ->
                 eprintfn "Error reading %s: '%s'" dllPath e.Message
