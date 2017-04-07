@@ -14,7 +14,7 @@ with
             | Name _ -> "The name of the item that you wish to search for."
             | Directory _ -> "Directories in which to search.  Defaults to current directory."
             | Type _ -> "The types of item to search for.  Defaults to seraching for all types."
-            | No_Recurse -> "Sarch only the directory listed, and not its children."
+            | No_Recurse -> "Search only the directory listed, and not its children."
 
 [<EntryPoint>]
 let main argv =
