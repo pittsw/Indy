@@ -21,17 +21,26 @@ let main argv =
     let parser = ArgumentParser.Create<Arguments>(programName = "Indy.exe")
     try
         let args = parser.Parse argv
-        let searchResults =
-            Searcher.search
-                {
-                    Searcher.SearchArgs.Directory = args.GetResult (<@ Directory @>, ".")
-                    NoRecurse = args.Contains <@ No_Recurse @>
-                    Types = args.GetResults <@ Type @>
-                            |> (fun x -> if List.isEmpty x then [Searcher.Class; Searcher.Method] else x)
-                }
-                (args.GetResult <@ Name @>)
-        for result in searchResults do
-            printfn "%s: %s" result.AssemblyPath result.FullName
+        let searchTerm = (args.GetResult <@ Name @>)
+        match searchTerm with
+        | ["-h"]
+        | ["-H"]
+        | ["-?"]
+        | ["/h"]
+        | ["/H"]
+        | ["/?"] -> printfn "%s" <| parser.PrintUsage()
+        | terms ->
+            let searchResults =
+                Searcher.search
+                    {
+                        Searcher.SearchArgs.Directory = args.GetResult (<@ Directory @>, ".")
+                        NoRecurse = args.Contains <@ No_Recurse @>
+                        Types = args.GetResults <@ Type @>
+                                |> (fun x -> if List.isEmpty x then [Searcher.Class; Searcher.Method] else x)
+                    }
+                    terms
+            for result in searchResults do
+                printfn "%s: %s" result.AssemblyPath result.FullName
     with
     | :? ArguParseException as e -> printfn "%s" e.Message
     0 // return an integer exit code
