@@ -22,7 +22,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <PlatformTarget>$(Platform)</PlatformTarget>
-    <StartArguments>-d C:\Windows -n whatever</StartArguments>
+    <StartArguments>-d ../../../../tests SearchTarget</StartArguments>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>PdbOnly</DebugType>

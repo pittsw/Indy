@@ -10,6 +10,14 @@ type Type =
     | Class
     | Method
     | Property
+    | Event
+with
+    static member AllTypes = [
+        Class
+        Method
+        Property
+        Event
+    ]
 
 type SearchResult = {
     Name : string
@@ -60,10 +68,13 @@ let search args (names : string seq) =
                 | Class -> [typeDefinition] |> Seq.cast<MemberReference>
                 | Method ->
                     typeDefinition.Methods
-                    |> Seq.filter (fun m -> not m.IsSetter && not m.IsGetter)
+                    |> Seq.filter (fun m -> not m.IsSpecialName)
                     |> Seq.cast<MemberReference>
                 | Property -> typeDefinition.Properties |> Seq.cast<MemberReference>
-            
+                | Event ->
+                    typeDefinition.Events
+                    |> Seq.cast<MemberReference>
+
             args.Types
             |> Seq.collect (fun t -> getRefParts t |> Seq.choose (matchRef t))
 
@@ -78,7 +89,7 @@ let search args (names : string seq) =
                 Seq.empty
 
     let searchOption = if args.NoRecurse then SearchOption.TopDirectoryOnly else SearchOption.AllDirectories
-    let searchAll pat = Directory.EnumerateFiles(args.Directory, pat, searchOption)
+    let searchAll pat = Directory.EnumerateFiles(Path.GetFullPath(args.Directory), pat, searchOption)
     let allFiles =
         try
             ["*.dll"; "*.exe"]

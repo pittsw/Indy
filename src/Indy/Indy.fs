@@ -36,7 +36,7 @@ let main argv =
                         Searcher.SearchArgs.Directory = args.GetResult (<@ Directory @>, ".")
                         NoRecurse = args.Contains <@ No_Recurse @>
                         Types = args.GetResults <@ Type @>
-                                |> (fun x -> if List.isEmpty x then [Searcher.Class; Searcher.Method] else x)
+                                |> (fun x -> if List.isEmpty x then Searcher.Type.AllTypes else x)
                     }
                     terms
             for result in searchResults do
