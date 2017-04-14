@@ -11,6 +11,8 @@ let curDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
 type SearchTargetEnum =
     | ValueOne = 1
 
+type SearchTargetDelegate = delegate of int -> int
+
 type SearchTargetType() =
     [<DefaultValue>]
     val mutable searchTargetField : int
@@ -55,6 +57,13 @@ let basicSearchTests =
                     {
                         Name = "SearchTargetEnum"
                         FullName = "Indy.Tests.Tests/SearchTargetEnum"
+                        AssemblyName = "Indy.Tests.exe"
+                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
+                        Type = Class
+                    }
+                    {
+                        Name = "SearchTargetDelegate"
+                        FullName = "Indy.Tests.Tests/SearchTargetDelegate"
                         AssemblyName = "Indy.Tests.exe"
                         AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
                         Type = Class
