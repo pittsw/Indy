@@ -6,7 +6,7 @@ open System.IO
 
 open Mono.Cecil
 
-type Type =
+type ElementType =
     | Class
     | Method
     | Property
@@ -26,12 +26,12 @@ type SearchResult = {
     FullName : string
     AssemblyName : string
     AssemblyPath : string
-    Type : Type
+    ElementType : ElementType
 }
 
 type SearchArgs = {
     Directory : string
-    Types : Type list
+    ElementTypes : ElementType list
     NoRecurse : bool
 }
 
@@ -52,7 +52,7 @@ let search args (names : string seq) =
                     FullName = mem.FullName
                     AssemblyName = moduleDef.Name
                     AssemblyPath = dllPath
-                    Type = ``type``
+                    ElementType = ``type``
                 }
 
             let matchRef ``type`` (ref : MemberReference) =
@@ -79,7 +79,7 @@ let search args (names : string seq) =
                     |> Seq.cast<MemberReference>
                 | Event -> typeDefinition.Events |> Seq.cast<MemberReference>
 
-            args.Types
+            args.ElementTypes
             |> Seq.collect (fun t -> getRefParts t |> Seq.choose (matchRef t))
 
         try

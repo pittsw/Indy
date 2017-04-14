@@ -24,7 +24,7 @@ type SearchTargetType() =
             FullName = "Indy.Tests.Tests/SearchTargetType"
             AssemblyName = "Indy.Tests.exe"
             AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-            Type = Class
+            ElementType = Class
         }
 
     static member SearchTargetMethod() = ()
@@ -35,7 +35,7 @@ type SearchTargetType() =
 
 [<Tests>]
 let basicSearchTests =
-    let defaultArgs = { Directory = curDir; NoRecurse = false; Types = [Class] }
+    let defaultArgs = { Directory = curDir; NoRecurse = false; ElementTypes = [Class] }
     testList "basicSearchTests" [
         testCase "basic type search" <| fun _ ->
             Expect.equal
@@ -59,14 +59,14 @@ let basicSearchTests =
                         FullName = "Indy.Tests.Tests/SearchTargetEnum"
                         AssemblyName = "Indy.Tests.exe"
                         AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        Type = Class
+                        ElementType = Class
                     }
                     {
                         Name = "SearchTargetDelegate"
                         FullName = "Indy.Tests.Tests/SearchTargetDelegate"
                         AssemblyName = "Indy.Tests.exe"
                         AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        Type = Class
+                        ElementType = Class
                     }
                     SearchTargetType.Expected
                 ])
@@ -74,56 +74,56 @@ let basicSearchTests =
 
         testCase "method search" <| fun _ ->
             Expect.equal
-                (search { defaultArgs with Types = [Method] } ["SearchTarget"]) 
+                (search { defaultArgs with ElementTypes = [Method] } ["SearchTarget"]) 
                 ([
                     {
                         Name = "SearchTargetMethod"
                         FullName = "System.Void Indy.Tests.Tests/SearchTargetType::SearchTargetMethod()"
                         AssemblyName = "Indy.Tests.exe"
                         AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        Type = Method
+                        ElementType = Method
                     }
                 ])
                 "Method search."
 
         testCase "property search" <| fun _ ->
             Expect.equal
-                (search { defaultArgs with Types = [Property] } ["SearchTarget"]) 
+                (search { defaultArgs with ElementTypes = [Property] } ["SearchTarget"]) 
                 ([
                     {
                         Name = "SearchTargetProperty"
                         FullName = "System.Int32 Indy.Tests.Tests/SearchTargetType::SearchTargetProperty()"
                         AssemblyName = "Indy.Tests.exe"
                         AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        Type = Property
+                        ElementType = Property
                     }
                 ])
                 "Property search."
 
         testCase "field search" <| fun _ ->
             Expect.equal
-                (search { defaultArgs with Types = [Field] } ["SearchTarget"]) 
+                (search { defaultArgs with ElementTypes = [Field] } ["SearchTarget"]) 
                 ([
                     {
                         Name = "searchTargetField"
                         FullName = "System.Int32 Indy.Tests.Tests/SearchTargetType::searchTargetField"
                         AssemblyName = "Indy.Tests.exe"
                         AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        Type = Field
+                        ElementType = Field
                     }
                 ])
                 "Field search."
 
         testCase "event search" <| fun _ ->
             Expect.equal
-                (search { defaultArgs with Types = [Event] } ["SearchTarget"]) 
+                (search { defaultArgs with ElementTypes = [Event] } ["SearchTarget"]) 
                 ([
                     {
                         Name = "SearchTargetEventPublic"
                         FullName = "Microsoft.FSharp.Control.FSharpHandler`1<System.Object> Indy.Tests.Tests/SearchTargetType::SearchTargetEventPublic"
                         AssemblyName = "Indy.Tests.exe"
                         AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        Type = Event
+                        ElementType = Event
                     }
                 ])
                 "Event search."

@@ -5,7 +5,7 @@ open Argu
 type Arguments =
     | [<MainCommand; ExactlyOnce; Last>] Name of string list
     | [<AltCommandLine("-d")>] Directory of string
-    | [<AltCommandLine("-t")>] Type of Searcher.Type
+    | [<AltCommandLine("-e")>] Element_Type of Searcher.ElementType
     | [<AltCommandLine("-n")>] No_Recurse
 with
     interface IArgParserTemplate with
@@ -13,7 +13,7 @@ with
             match s with
             | Name _ -> "The name of the item that you wish to search for."
             | Directory _ -> "Directories in which to search.  Defaults to current directory."
-            | Type _ -> "The types of item to search for.  Defaults to searching for all types."
+            | Element_Type _ -> "The type(s) of element to search for.  Defaults to searching for all listed types."
             | No_Recurse -> "Search only the directory listed, and not its children."
 
 [<EntryPoint>]
@@ -35,8 +35,8 @@ let main argv =
                     {
                         Searcher.SearchArgs.Directory = args.GetResult (<@ Directory @>, ".")
                         NoRecurse = args.Contains <@ No_Recurse @>
-                        Types = args.GetResults <@ Type @>
-                                |> (fun x -> if List.isEmpty x then Searcher.Type.AllTypes else x)
+                        ElementTypes = args.GetResults <@ Element_Type @>
+                                |> (fun x -> if List.isEmpty x then Searcher.ElementType.AllTypes else x)
                     }
                     terms
             for result in searchResults do
