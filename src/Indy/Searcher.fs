@@ -10,12 +10,14 @@ type Type =
     | Class
     | Method
     | Property
+    | Field
     | Event
 with
     static member AllTypes = [
         Class
         Method
         Property
+        Field
         Event
     ]
 
@@ -71,9 +73,11 @@ let search args (names : string seq) =
                     |> Seq.filter (fun m -> not m.IsSpecialName)
                     |> Seq.cast<MemberReference>
                 | Property -> typeDefinition.Properties |> Seq.cast<MemberReference>
-                | Event ->
-                    typeDefinition.Events
+                | Field ->
+                    typeDefinition.Fields
+                    |> Seq.filter (fun f -> not (f.Name.Contains("@")))
                     |> Seq.cast<MemberReference>
+                | Event -> typeDefinition.Events |> Seq.cast<MemberReference>
 
             args.Types
             |> Seq.collect (fun t -> getRefParts t |> Seq.choose (matchRef t))

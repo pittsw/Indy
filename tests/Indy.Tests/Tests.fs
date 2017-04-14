@@ -9,7 +9,8 @@ open Indy.Searcher
 let curDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
 
 type SearchTargetType() =
-    let searchTargetEventPrivate = new Event<_>()
+    [<DefaultValue>]
+    val mutable searchTargetField : int
 
     static member Name = "SearchTargetType"
     static member Expected =
@@ -25,7 +26,7 @@ type SearchTargetType() =
     member val SearchTargetProperty = 0 with get, set
 
     [<CLIEvent>]
-    member this.SearchTargetEventPublic = searchTargetEventPrivate.Publish
+    member this.SearchTargetEventPublic = (new Event<_>()).Publish
 
 [<Tests>]
 let basicSearchTests =
@@ -44,11 +45,13 @@ let basicSearchTests =
                 ([])
                 "Searching with TopOnly should exclude child directories."
 
-        testCase "different item types" <| fun _ ->
+        testCase "class search" <| fun _ ->
             Expect.equal
                 (search defaultArgs [SearchTargetType.Name]) 
                 ([SearchTargetType.Expected])
                 "Class search."
+
+        testCase "method search" <| fun _ ->
             Expect.equal
                 (search { defaultArgs with Types = [Method] } ["SearchTarget"]) 
                 ([
@@ -61,6 +64,8 @@ let basicSearchTests =
                     }
                 ])
                 "Method search."
+
+        testCase "property search" <| fun _ ->
             Expect.equal
                 (search { defaultArgs with Types = [Property] } ["SearchTarget"]) 
                 ([
@@ -73,6 +78,22 @@ let basicSearchTests =
                     }
                 ])
                 "Property search."
+
+        testCase "field search" <| fun _ ->
+            Expect.equal
+                (search { defaultArgs with Types = [Indy.Searcher.Field] } ["SearchTarget"]) 
+                ([
+                    {
+                        Name = "searchTargetField"
+                        FullName = "System.Int32 Indy.Tests.Tests/SearchTargetType::searchTargetField"
+                        AssemblyName = "Indy.Tests.exe"
+                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
+                        Type = Field
+                    }
+                ])
+                "Field search."
+
+        testCase "event search" <| fun _ ->
             Expect.equal
                 (search { defaultArgs with Types = [Indy.Searcher.Event] } ["SearchTarget"]) 
                 ([
