@@ -13,7 +13,7 @@ with
             match s with
             | Name _ -> "The name of the item that you wish to search for."
             | Directory _ -> "Directories in which to search.  Defaults to current directory."
-            | Type _ -> "The types of item to search for.  Defaults to seraching for all types."
+            | Type _ -> "The types of item to search for.  Defaults to searching for all types."
             | No_Recurse -> "Search only the directory listed, and not its children."
 
 [<EntryPoint>]
