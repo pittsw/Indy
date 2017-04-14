@@ -8,6 +8,9 @@ open Indy.Searcher
 
 let curDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
 
+type SearchTargetEnum =
+    | ValueOne = 1
+
 type SearchTargetType() =
     [<DefaultValue>]
     val mutable searchTargetField : int
@@ -26,7 +29,7 @@ type SearchTargetType() =
     member val SearchTargetProperty = 0 with get, set
 
     [<CLIEvent>]
-    member this.SearchTargetEventPublic = (new Event<_>()).Publish
+    member __.SearchTargetEventPublic = (new Event<_>()).Publish
 
 [<Tests>]
 let basicSearchTests =
@@ -47,8 +50,17 @@ let basicSearchTests =
 
         testCase "class search" <| fun _ ->
             Expect.equal
-                (search defaultArgs [SearchTargetType.Name]) 
-                ([SearchTargetType.Expected])
+                (search defaultArgs ["SearchTarget"]) 
+                ([
+                    {
+                        Name = "SearchTargetEnum"
+                        FullName = "Indy.Tests.Tests/SearchTargetEnum"
+                        AssemblyName = "Indy.Tests.exe"
+                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
+                        Type = Class
+                    }
+                    SearchTargetType.Expected
+                ])
                 "Class search."
 
         testCase "method search" <| fun _ ->
@@ -81,7 +93,7 @@ let basicSearchTests =
 
         testCase "field search" <| fun _ ->
             Expect.equal
-                (search { defaultArgs with Types = [Indy.Searcher.Field] } ["SearchTarget"]) 
+                (search { defaultArgs with Types = [Field] } ["SearchTarget"]) 
                 ([
                     {
                         Name = "searchTargetField"
@@ -95,7 +107,7 @@ let basicSearchTests =
 
         testCase "event search" <| fun _ ->
             Expect.equal
-                (search { defaultArgs with Types = [Indy.Searcher.Event] } ["SearchTarget"]) 
+                (search { defaultArgs with Types = [Event] } ["SearchTarget"]) 
                 ([
                     {
                         Name = "SearchTargetEventPublic"
