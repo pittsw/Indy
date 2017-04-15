@@ -30,13 +30,13 @@ type SearchResult = {
 type SearchArgs = {
     Directory : string
     ElementTypes : ElementType list
-    ReturnType : string option
+    TypeFilter : string option
     NoRecurse : bool
 }
 
 let search args (names : string seq) =
     let allNames = names |> Seq.map (fun s -> s.ToLower()) |> Array.ofSeq
-    let lowerReturnType = args.ReturnType |> Option.map (fun t -> t.ToLower())
+    let lowerReturnType = args.TypeFilter |> Option.map (fun t -> t.ToLower())
     let searchDll (dllPath : string) : SearchResult seq =
         let rec getAllTypes (t : TypeDefinition) =
             seq {
@@ -80,10 +80,23 @@ let search args (names : string seq) =
 
                     filteredMethods
                     |> Seq.cast<MemberReference>
-                | Property -> typeDefinition.Properties |> Seq.cast<MemberReference>
+                | Property ->
+                    let properties = typeDefinition.Properties
+                    let filteredProperties =
+                        match lowerReturnType with
+                        | None -> properties :> PropertyDefinition seq
+                        | Some t -> properties |> Seq.filter (fun p -> p.PropertyType.FullName.ToLower().Contains(t))
+                    filteredProperties
+                    |> Seq.cast<MemberReference>
                 | Field ->
-                    typeDefinition.Fields
-                    |> Seq.filter (fun f -> not (f.Name.Contains("@")))
+                    let fields =
+                        typeDefinition.Fields
+                        |> Seq.filter (fun f -> not (f.Name.Contains("@")))
+                    let filteredFields =
+                        match lowerReturnType with
+                        | None -> fields
+                        | Some t -> fields |> Seq.filter (fun p -> p.FieldType.FullName.ToLower().Contains(t))
+                    filteredFields
                     |> Seq.cast<MemberReference>
                 | Event -> typeDefinition.Events |> Seq.cast<MemberReference>
 

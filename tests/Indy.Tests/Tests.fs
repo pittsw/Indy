@@ -16,6 +16,8 @@ type SearchTargetDelegate = delegate of int -> int
 type SearchTargetType() =
     [<DefaultValue>]
     val mutable searchTargetField : int
+    [<DefaultValue>]
+    val mutable searchTargetField2 : string
 
     static member Name = "SearchTargetType"
     static member Expected =
@@ -30,11 +32,12 @@ type SearchTargetType() =
     static member SearchTargetMethod() = ()
     static member SearchTargetMethod2() = 5
     member val SearchTargetProperty = 0 with get, set
+    member val SearchTargetProperty2 = "TestData" with get, set
 
     [<CLIEvent>]
     member __.SearchTargetEventPublic = (new Event<_>()).Publish
 
-let defaultArgs = { Directory = curDir; NoRecurse = false; ElementTypes = ElementType.AllTypes; ReturnType = None }
+let defaultArgs = { Directory = curDir; NoRecurse = false; ElementTypes = ElementType.AllTypes; TypeFilter = None }
 
 [<Tests>]
 let basicSearchTests =
@@ -93,6 +96,13 @@ let basicSearchTests =
                         AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
                         ElementType = Property
                     }
+                    {
+                        Name = "SearchTargetProperty2"
+                        FullName = "System.String Indy.Tests.Tests/SearchTargetType::SearchTargetProperty2()"
+                        AssemblyName = "Indy.Tests.exe"
+                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
+                        ElementType = Property
+                    }
                 ])
                 "Property search."
 
@@ -103,6 +113,13 @@ let basicSearchTests =
                     {
                         Name = "searchTargetField"
                         FullName = "System.Int32 Indy.Tests.Tests/SearchTargetType::searchTargetField"
+                        AssemblyName = "Indy.Tests.exe"
+                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
+                        ElementType = Field
+                    }
+                    {
+                        Name = "searchTargetField2"
+                        FullName = "System.String Indy.Tests.Tests/SearchTargetType::searchTargetField2"
                         AssemblyName = "Indy.Tests.exe"
                         AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
                         ElementType = Field
@@ -139,8 +156,8 @@ let fileSelectionTests =
 [<Tests>]
 let elementFilteringTests =
     testList "elementFilteringTests" [
-        testCase "return type" <| fun _ ->
-            let args = { defaultArgs with ElementTypes = [Method]; ReturnType = Some "int" }
+        testCase "method return type" <| fun _ ->
+            let args = { defaultArgs with ElementTypes = [Method]; TypeFilter = Some "int" }
             Expect.equal
                 (search args ["SearchTarget"]) 
                 ([
@@ -153,4 +170,32 @@ let elementFilteringTests =
                     }
                 ])
                 "Method search."
+
+        testCase "property type" <| fun _ ->
+            Expect.equal
+                (search { defaultArgs with ElementTypes = [Property]; TypeFilter = Some "int" } ["SearchTarget"]) 
+                ([
+                    {
+                        Name = "SearchTargetProperty"
+                        FullName = "System.Int32 Indy.Tests.Tests/SearchTargetType::SearchTargetProperty()"
+                        AssemblyName = "Indy.Tests.exe"
+                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
+                        ElementType = Property
+                    }
+                ])
+                "Property search."
+
+        testCase "field type" <| fun _ ->
+            Expect.equal
+                (search { defaultArgs with ElementTypes = [Field]; TypeFilter = Some "string" } ["SearchTarget"]) 
+                ([
+                    {
+                        Name = "searchTargetField2"
+                        FullName = "System.String Indy.Tests.Tests/SearchTargetType::searchTargetField2"
+                        AssemblyName = "Indy.Tests.exe"
+                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
+                        ElementType = Field
+                    }
+                ])
+                "Field search."
     ]
