@@ -28,31 +28,20 @@ type SearchTargetType() =
         }
 
     static member SearchTargetMethod() = ()
+    static member SearchTargetMethod2() = 5
     member val SearchTargetProperty = 0 with get, set
 
     [<CLIEvent>]
     member __.SearchTargetEventPublic = (new Event<_>()).Publish
 
+let defaultArgs = { Directory = curDir; NoRecurse = false; ElementTypes = ElementType.AllTypes; ReturnType = None }
+
 [<Tests>]
 let basicSearchTests =
-    let defaultArgs = { Directory = curDir; NoRecurse = false; ElementTypes = [Class] }
     testList "basicSearchTests" [
-        testCase "basic type search" <| fun _ ->
-            Expect.equal
-                (search defaultArgs [SearchTargetType.Name]) 
-                ([SearchTargetType.Expected])
-                "Basic type search test."
-
-        testCase "directory specification" <| fun _ ->
-            let args = { defaultArgs with Directory = Path.GetDirectoryName(curDir); NoRecurse = true }
-            Expect.equal
-                (search args [SearchTargetType.Name])
-                ([])
-                "Searching with TopOnly should exclude child directories."
-
         testCase "class search" <| fun _ ->
             Expect.equal
-                (search defaultArgs ["SearchTarget"]) 
+                (search { defaultArgs with ElementTypes = [Class] } ["SearchTarget"]) 
                 ([
                     {
                         Name = "SearchTargetEnum"
@@ -79,6 +68,13 @@ let basicSearchTests =
                     {
                         Name = "SearchTargetMethod"
                         FullName = "System.Void Indy.Tests.Tests/SearchTargetType::SearchTargetMethod()"
+                        AssemblyName = "Indy.Tests.exe"
+                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
+                        ElementType = Method
+                    }
+                    {
+                        Name = "SearchTargetMethod2"
+                        FullName = "System.Int32 Indy.Tests.Tests/SearchTargetType::SearchTargetMethod2()"
                         AssemblyName = "Indy.Tests.exe"
                         AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
                         ElementType = Method
@@ -127,4 +123,34 @@ let basicSearchTests =
                     }
                 ])
                 "Event search."
+    ]
+
+[<Tests>]
+let fileSelectionTests =
+    testList "fileSelectionTests" [
+        testCase "directory specification" <| fun _ ->
+            let args = { defaultArgs with Directory = Path.GetDirectoryName(curDir); NoRecurse = true }
+            Expect.equal
+                (search args [SearchTargetType.Name])
+                ([])
+                "Searching with TopOnly should exclude child directories."
+    ]
+
+[<Tests>]
+let elementFilteringTests =
+    testList "elementFilteringTests" [
+        testCase "return type" <| fun _ ->
+            let args = { defaultArgs with ElementTypes = [Method]; ReturnType = Some "int" }
+            Expect.equal
+                (search args ["SearchTarget"]) 
+                ([
+                    {
+                        Name = "SearchTargetMethod2"
+                        FullName = "System.Int32 Indy.Tests.Tests/SearchTargetType::SearchTargetMethod2()"
+                        AssemblyName = "Indy.Tests.exe"
+                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
+                        ElementType = Method
+                    }
+                ])
+                "Method search."
     ]

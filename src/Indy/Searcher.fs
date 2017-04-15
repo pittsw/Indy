@@ -1,7 +1,5 @@
 module Indy.Searcher
 
-open System
-open System.Collections.Generic
 open System.IO
 
 open Mono.Cecil
@@ -32,11 +30,13 @@ type SearchResult = {
 type SearchArgs = {
     Directory : string
     ElementTypes : ElementType list
+    ReturnType : string option
     NoRecurse : bool
 }
 
 let search args (names : string seq) =
     let allNames = names |> Seq.map (fun s -> s.ToLower()) |> Array.ofSeq
+    let lowerReturnType = args.ReturnType |> Option.map (fun t -> t.ToLower())
     let searchDll (dllPath : string) : SearchResult seq =
         let rec getAllTypes (t : TypeDefinition) =
             seq {
@@ -69,8 +69,16 @@ let search args (names : string seq) =
                 match ``type`` with
                 | Class -> [typeDefinition] |> Seq.cast<MemberReference>
                 | Method ->
-                    typeDefinition.Methods
-                    |> Seq.filter (fun m -> not m.IsSpecialName)
+                    let methods =
+                        typeDefinition.Methods
+                        |> Seq.filter (fun m -> not m.IsSpecialName)
+
+                    let filteredMethods =
+                        match lowerReturnType with
+                        | None -> methods
+                        | Some t -> methods |> Seq.filter (fun m -> m.ReturnType.FullName.ToLower().Contains(t))
+
+                    filteredMethods
                     |> Seq.cast<MemberReference>
                 | Property -> typeDefinition.Properties |> Seq.cast<MemberReference>
                 | Field ->

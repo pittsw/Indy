@@ -6,6 +6,7 @@ type Arguments =
     | [<MainCommand; ExactlyOnce; Last>] Name of string list
     | [<AltCommandLine("-d")>] Directory of string
     | [<AltCommandLine("-e")>] Element_Type of Searcher.ElementType
+    | [<AltCommandLine("-r")>] Return_Type of string
     | [<AltCommandLine("-n")>] No_Recurse
 with
     interface IArgParserTemplate with
@@ -14,6 +15,7 @@ with
             | Name _ -> "The name of the item that you wish to search for."
             | Directory _ -> "Directories in which to search.  Defaults to current directory."
             | Element_Type _ -> "The type(s) of element to search for.  Defaults to searching for all listed types."
+            | Return_Type _ -> "When used with the method element type, will only return methods whose return type matches this argument."
             | No_Recurse -> "Search only the directory listed, and not its children."
 
 [<EntryPoint>]
@@ -37,6 +39,11 @@ let main argv =
                         NoRecurse = args.Contains <@ No_Recurse @>
                         ElementTypes = args.GetResults <@ Element_Type @>
                                 |> (fun x -> if List.isEmpty x then Searcher.ElementType.AllTypes else x)
+                        ReturnType =
+                            if args.Contains <@ Return_Type @> then
+                                Some <| args.GetResult <@ Return_Type @>
+                            else
+                                None
                     }
                     terms
             for result in searchResults do
