@@ -21,7 +21,7 @@ let appReferences = projectReferences "src"
 let testReferences = projectReferences "tests"
 
 // version info
-let version = "0.4"  // or retrieve from CI server
+let version = "0.5"  // or retrieve from CI server
 
 // Targets
 Target "Clean" (fun _ ->
