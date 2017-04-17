@@ -1,9 +1,11 @@
 module Indy.Searcher
 
+open System
 open System.IO
 
 open Mono.Cecil
 
+/// Type of element to search for. Class includes enums and delegates.
 type ElementType =
     | Class
     | Method
@@ -11,6 +13,8 @@ type ElementType =
     | Field
     | Event
 with
+
+    /// All element types that can be searched.
     static member AllTypes = [
         Class
         Method
@@ -19,6 +23,7 @@ with
         Event
     ]
 
+/// The result of performing a search.
 type SearchResult = {
     Name : string
     FullName : string
@@ -27,6 +32,7 @@ type SearchResult = {
     ElementType : ElementType
 }
 
+/// Arguments for searching.
 type SearchArgs = {
     Directory : string
     ElementTypes : ElementType list
@@ -34,9 +40,63 @@ type SearchArgs = {
     NoRecurse : bool
 }
 
-let search args (names : string seq) =
+/// Performs a case insensitive match on the given element against the given name.
+let private filterByName<'T> (nameFunc : 'T -> string) (name : string) (elements : 'T seq) =
+    elements
+    |> Seq.filter (fun e -> (nameFunc e).IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0)
+
+/// Filters the given list by the type filter, if it exists.
+let private filterByTypeFilter<'T> args (nameFunc : 'T -> string) (elements : 'T seq) =
+    match args.TypeFilter with
+    | None -> elements
+    | Some t -> filterByName nameFunc t elements
+
+/// Given a type definition, returns all matching members from within it.
+let private getMatchingMembers args (names : string seq) dllPath (typeDefinition : TypeDefinition) =
     let allNames = names |> Seq.map (fun s -> s.ToLower()) |> Array.ofSeq
-    let lowerReturnType = args.TypeFilter |> Option.map (fun t -> t.ToLower())
+    let makeSearchResult ``type`` (mem : MemberReference) =
+        {
+            Name = mem.Name
+            FullName = mem.FullName
+            AssemblyName = typeDefinition.Module.Name
+            AssemblyPath = dllPath
+            ElementType = ``type``
+        }
+
+    let matchRef ``type`` (ref : MemberReference) =
+        let isMatch =
+            let lowerName = ref.Name.ToLower()
+            allNames
+            |> Array.exists (fun name -> lowerName.Contains(name))
+        if isMatch then
+            Some (makeSearchResult ``type`` ref)
+        else
+            None
+
+    let getRefParts ``type`` =
+        match ``type`` with
+        | Class -> [typeDefinition] |> Seq.cast<MemberReference>
+        | Method ->
+            typeDefinition.Methods
+            |> Seq.filter (fun m -> not m.IsSpecialName)
+            |> filterByTypeFilter args (fun m -> m.ReturnType.FullName)
+            |> Seq.cast<MemberReference>
+        | Property ->
+            typeDefinition.Properties
+            |> filterByTypeFilter args (fun p -> p.PropertyType.FullName)
+            |> Seq.cast<MemberReference>
+        | Field ->
+            typeDefinition.Fields
+            |> Seq.filter (fun f -> not (f.Name.Contains("@")))
+            |> filterByTypeFilter args (fun f -> f.FieldType.FullName)
+            |> Seq.cast<MemberReference>
+        | Event -> typeDefinition.Events |> Seq.cast<MemberReference>
+
+    args.ElementTypes
+    |> Seq.collect (fun t -> getRefParts t |> Seq.choose (matchRef t))
+
+/// Runs a search using the given args and list of names to search against.
+let search args (names : string seq) =
     let searchDll (dllPath : string) : SearchResult seq =
         let rec getAllTypes (t : TypeDefinition) =
             seq {
@@ -45,69 +105,11 @@ let search args (names : string seq) =
                     yield! getAllTypes nt
             }
 
-        let getAllMatchingMembers (moduleDef : ModuleDefinition) (typeDefinition : TypeDefinition) =
-            let makeSearchResult ``type`` (mem : MemberReference) =
-                {
-                    Name = mem.Name
-                    FullName = mem.FullName
-                    AssemblyName = moduleDef.Name
-                    AssemblyPath = dllPath
-                    ElementType = ``type``
-                }
-
-            let matchRef ``type`` (ref : MemberReference) =
-                let isMatch =
-                    let lowerName = ref.Name.ToLower()
-                    allNames
-                    |> Array.exists (fun name -> lowerName.Contains(name))
-                if isMatch then
-                    Some (makeSearchResult ``type`` ref)
-                else
-                    None
-
-            let getRefParts ``type`` =
-                match ``type`` with
-                | Class -> [typeDefinition] |> Seq.cast<MemberReference>
-                | Method ->
-                    let methods =
-                        typeDefinition.Methods
-                        |> Seq.filter (fun m -> not m.IsSpecialName)
-
-                    let filteredMethods =
-                        match lowerReturnType with
-                        | None -> methods
-                        | Some t -> methods |> Seq.filter (fun m -> m.ReturnType.FullName.ToLower().Contains(t))
-
-                    filteredMethods
-                    |> Seq.cast<MemberReference>
-                | Property ->
-                    let properties = typeDefinition.Properties
-                    let filteredProperties =
-                        match lowerReturnType with
-                        | None -> properties :> PropertyDefinition seq
-                        | Some t -> properties |> Seq.filter (fun p -> p.PropertyType.FullName.ToLower().Contains(t))
-                    filteredProperties
-                    |> Seq.cast<MemberReference>
-                | Field ->
-                    let fields =
-                        typeDefinition.Fields
-                        |> Seq.filter (fun f -> not (f.Name.Contains("@")))
-                    let filteredFields =
-                        match lowerReturnType with
-                        | None -> fields
-                        | Some t -> fields |> Seq.filter (fun p -> p.FieldType.FullName.ToLower().Contains(t))
-                    filteredFields
-                    |> Seq.cast<MemberReference>
-                | Event -> typeDefinition.Events |> Seq.cast<MemberReference>
-
-            args.ElementTypes
-            |> Seq.collect (fun t -> getRefParts t |> Seq.choose (matchRef t))
-
         try
             let moduleDef = ModuleDefinition.ReadModule(dllPath)
             moduleDef.Types
             |> Seq.collect getAllTypes
-            |> Seq.collect (getAllMatchingMembers moduleDef)
+            |> Seq.collect (getMatchingMembers args names dllPath)
             with
             | e ->
                 eprintfn "Error reading %s: '%s'" dllPath e.Message
