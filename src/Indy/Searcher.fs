@@ -87,7 +87,7 @@ let private getMatchingMembers args (names : string seq) dllPath (typeDefinition
             |> Seq.cast<MemberReference>
         | Field ->
             typeDefinition.Fields
-            |> Seq.filter (fun f -> not (f.Name.Contains("@")))
+            |> Seq.filter (fun f -> not (f.Name.Contains("@") || f.Name.Contains("<")))
             |> filterByTypeFilter args (fun f -> f.FieldType.FullName)
             |> Seq.cast<MemberReference>
         | Event -> typeDefinition.Events |> Seq.cast<MemberReference>

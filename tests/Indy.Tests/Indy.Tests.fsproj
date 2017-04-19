@@ -50,6 +50,9 @@
   <ItemGroup>
     <Compile Include="Tests.fs" />
     <Compile Include="Main.fs" />
+    <None Include="SearchTarget.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="App.config" />
     <None Include="paket.references" />
   </ItemGroup>

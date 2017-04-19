@@ -1,5 +1,6 @@
 module Indy.Tests.Tests
 
+open System.CodeDom.Compiler
 open System.IO
 open System.Reflection
 
@@ -8,137 +9,108 @@ open Indy.Searcher
 
 let curDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
 
-type SearchTargetEnum =
-    | ValueOne = 1
+let defaultArgs = {
+    Directory = curDir
+    NoRecurse = false
+    ElementTypes = ElementType.AllTypes
+    TypeFilter = None
+}
 
-type SearchTargetDelegate = delegate of int -> int
+module Data =
+    let initialize =
+        let provider = CodeDomProvider.CreateProvider("CSharp")
+        let inFile = Path.Combine(curDir, "SearchTarget.cs")
+        let outFile = Path.Combine(curDir, "SearchTarget.dll")
+        let cp = CompilerParameters(OutputAssembly = outFile, GenerateInMemory = false, TreatWarningsAsErrors = false)
+        let results = provider.CompileAssemblyFromFile(cp, inFile)
+        if results.Errors.Count > 0 then
+            for error in results.Errors do
+                eprintfn "%s" <| error.ToString()
+            failwith "Could not compile target"
+        ()
 
-type SearchTargetType() =
-    [<DefaultValue>]
-    val mutable searchTargetField : int
-    [<DefaultValue>]
-    val mutable searchTargetField2 : string
-
-    static member Name = "SearchTargetType"
-    static member Expected =
+    let searchResult elementType name fullName =
+        let assemblyName = "SearchTarget.dll"
         {
-            Name = SearchTargetType.Name
-            FullName = "Indy.Tests.Tests/SearchTargetType"
-            AssemblyName = "Indy.Tests.exe"
-            AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-            ElementType = Class
+            Name = name
+            FullName = fullName
+            AssemblyName = assemblyName
+            AssemblyPath = Path.Combine(curDir, assemblyName)
+            ElementType = elementType
         }
 
-    static member SearchTargetMethod() = ()
-    static member SearchTargetMethod2() = 5
-    member val SearchTargetProperty = 0 with get, set
-    member val SearchTargetProperty2 = "TestData" with get, set
+    let makeClass = searchResult Class
+    let makeMethod = searchResult Method
+    let makeProperty = searchResult Property
+    let makeField = searchResult Field
+    let makeEvent = searchResult Event
 
-    [<CLIEvent>]
-    member __.SearchTargetEventPublic = (new Event<_>()).Publish
+    let stType = makeClass "SearchTarget" "Indy.Tests.SearchTarget"
+    let stEnum = makeClass "SearchTargetEnum" "Indy.Tests.SearchTargetEnum"
+    let stDelegate = makeClass "SearchTargetDelegate" "Indy.Tests.SearchTargetDelegate"
 
-let defaultArgs = { Directory = curDir; NoRecurse = false; ElementTypes = ElementType.AllTypes; TypeFilter = None }
+    let stMethod = makeMethod
+                    "SearchTargetMethod"
+                    "System.Void Indy.Tests.SearchTarget::SearchTargetMethod()"
+    let stMethodStatic = makeMethod
+                            "SearchTargetMethodStatic"
+                            "System.Int32 Indy.Tests.SearchTarget::SearchTargetMethodStatic()"
+
+    let stProperty = makeProperty
+                        "SearchTargetProperty"
+                        "System.Int32 Indy.Tests.SearchTarget::SearchTargetProperty()"
+    let stPropertyStatic = makeProperty
+                            "SearchTargetPropertyStatic"
+                            "System.String Indy.Tests.SearchTarget::SearchTargetPropertyStatic()"
+
+    let stField = makeField
+                    "searchTargetField"
+                    "System.Int32 Indy.Tests.SearchTarget::searchTargetField"
+    let stFieldStatic = makeField
+                            "searchTargetFieldStatic"
+                            "System.String Indy.Tests.SearchTarget::searchTargetFieldStatic"
+
+    let stEvent = makeEvent
+                    "SearchTargetEvent"
+                    "Indy.Tests.SearchTargetDelegate Indy.Tests.SearchTarget::SearchTargetEvent"
+    let stEventField = makeField
+                        "SearchTargetEvent"
+                        "Indy.Tests.SearchTargetDelegate Indy.Tests.SearchTarget::SearchTargetEvent"
+
+let query args =
+    search args ["SearchTarget"]
 
 [<Tests>]
 let basicSearchTests =
     testList "basicSearchTests" [
         testCase "class search" <| fun _ ->
             Expect.equal
-                (search { defaultArgs with ElementTypes = [Class] } ["SearchTarget"]) 
-                ([
-                    {
-                        Name = "SearchTargetEnum"
-                        FullName = "Indy.Tests.Tests/SearchTargetEnum"
-                        AssemblyName = "Indy.Tests.exe"
-                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        ElementType = Class
-                    }
-                    {
-                        Name = "SearchTargetDelegate"
-                        FullName = "Indy.Tests.Tests/SearchTargetDelegate"
-                        AssemblyName = "Indy.Tests.exe"
-                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        ElementType = Class
-                    }
-                    SearchTargetType.Expected
-                ])
+                (query { defaultArgs with ElementTypes = [Class] }) 
+                [Data.stEnum; Data.stDelegate; Data.stType]
                 "Class search."
 
         testCase "method search" <| fun _ ->
             Expect.equal
-                (search { defaultArgs with ElementTypes = [Method] } ["SearchTarget"]) 
-                ([
-                    {
-                        Name = "SearchTargetMethod"
-                        FullName = "System.Void Indy.Tests.Tests/SearchTargetType::SearchTargetMethod()"
-                        AssemblyName = "Indy.Tests.exe"
-                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        ElementType = Method
-                    }
-                    {
-                        Name = "SearchTargetMethod2"
-                        FullName = "System.Int32 Indy.Tests.Tests/SearchTargetType::SearchTargetMethod2()"
-                        AssemblyName = "Indy.Tests.exe"
-                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        ElementType = Method
-                    }
-                ])
+                (query { defaultArgs with ElementTypes = [Method] }) 
+                [Data.stMethod; Data.stMethodStatic]
                 "Method search."
 
         testCase "property search" <| fun _ ->
             Expect.equal
-                (search { defaultArgs with ElementTypes = [Property] } ["SearchTarget"]) 
-                ([
-                    {
-                        Name = "SearchTargetProperty"
-                        FullName = "System.Int32 Indy.Tests.Tests/SearchTargetType::SearchTargetProperty()"
-                        AssemblyName = "Indy.Tests.exe"
-                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        ElementType = Property
-                    }
-                    {
-                        Name = "SearchTargetProperty2"
-                        FullName = "System.String Indy.Tests.Tests/SearchTargetType::SearchTargetProperty2()"
-                        AssemblyName = "Indy.Tests.exe"
-                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        ElementType = Property
-                    }
-                ])
+                (query { defaultArgs with ElementTypes = [Property] }) 
+                [Data.stProperty; Data.stPropertyStatic]
                 "Property search."
 
         testCase "field search" <| fun _ ->
             Expect.equal
-                (search { defaultArgs with ElementTypes = [Field] } ["SearchTarget"]) 
-                ([
-                    {
-                        Name = "searchTargetField"
-                        FullName = "System.Int32 Indy.Tests.Tests/SearchTargetType::searchTargetField"
-                        AssemblyName = "Indy.Tests.exe"
-                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        ElementType = Field
-                    }
-                    {
-                        Name = "searchTargetField2"
-                        FullName = "System.String Indy.Tests.Tests/SearchTargetType::searchTargetField2"
-                        AssemblyName = "Indy.Tests.exe"
-                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        ElementType = Field
-                    }
-                ])
+                (query { defaultArgs with ElementTypes = [Field] })
+                [Data.stField; Data.stFieldStatic; Data.stEventField]
                 "Field search."
 
         testCase "event search" <| fun _ ->
             Expect.equal
-                (search { defaultArgs with ElementTypes = [Event] } ["SearchTarget"]) 
-                ([
-                    {
-                        Name = "SearchTargetEventPublic"
-                        FullName = "Microsoft.FSharp.Control.FSharpHandler`1<System.Object> Indy.Tests.Tests/SearchTargetType::SearchTargetEventPublic"
-                        AssemblyName = "Indy.Tests.exe"
-                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        ElementType = Event
-                    }
-                ])
+                (query { defaultArgs with ElementTypes = [Event] }) 
+                [Data.stEvent]
                 "Event search."
     ]
 
@@ -148,8 +120,8 @@ let fileSelectionTests =
         testCase "directory specification" <| fun _ ->
             let args = { defaultArgs with Directory = Path.GetDirectoryName(curDir); NoRecurse = true }
             Expect.equal
-                (search args [SearchTargetType.Name])
-                ([])
+                (query args)
+                []
                 "Searching with TopOnly should exclude child directories."
     ]
 
@@ -159,43 +131,19 @@ let elementFilteringTests =
         testCase "method return type" <| fun _ ->
             let args = { defaultArgs with ElementTypes = [Method]; TypeFilter = Some "int" }
             Expect.equal
-                (search args ["SearchTarget"]) 
-                ([
-                    {
-                        Name = "SearchTargetMethod2"
-                        FullName = "System.Int32 Indy.Tests.Tests/SearchTargetType::SearchTargetMethod2()"
-                        AssemblyName = "Indy.Tests.exe"
-                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        ElementType = Method
-                    }
-                ])
+                (query args) 
+                [Data.stMethodStatic]
                 "Method search."
 
         testCase "property type" <| fun _ ->
             Expect.equal
-                (search { defaultArgs with ElementTypes = [Property]; TypeFilter = Some "int" } ["SearchTarget"]) 
-                ([
-                    {
-                        Name = "SearchTargetProperty"
-                        FullName = "System.Int32 Indy.Tests.Tests/SearchTargetType::SearchTargetProperty()"
-                        AssemblyName = "Indy.Tests.exe"
-                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        ElementType = Property
-                    }
-                ])
+                (query { defaultArgs with ElementTypes = [Property]; TypeFilter = Some "int" }) 
+                [Data.stProperty]
                 "Property search."
 
         testCase "field type" <| fun _ ->
             Expect.equal
-                (search { defaultArgs with ElementTypes = [Field]; TypeFilter = Some "string" } ["SearchTarget"]) 
-                ([
-                    {
-                        Name = "searchTargetField2"
-                        FullName = "System.String Indy.Tests.Tests/SearchTargetType::searchTargetField2"
-                        AssemblyName = "Indy.Tests.exe"
-                        AssemblyPath = Path.Combine(curDir, "Indy.Tests.exe")
-                        ElementType = Field
-                    }
-                ])
+                (query { defaultArgs with ElementTypes = [Field]; TypeFilter = Some "int" }) 
+                [Data.stField]
                 "Field search."
     ]
