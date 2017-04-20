@@ -4,6 +4,7 @@
 # Indy-specific
 build/
 deploy/
+*.swp
 
 # User-specific files
 *.suo

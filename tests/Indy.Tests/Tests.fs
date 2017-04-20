@@ -26,7 +26,10 @@ module Data =
         if results.Errors.Count > 0 then
             for error in results.Errors do
                 eprintfn "%s" <| error.ToString()
-            failwith "Could not compile target"
+
+            for error in results.Errors do
+                if not (error.IsWarning) then
+                    failwith "Could not compile target"
         ()
 
     let searchResult elementType name fullName =
