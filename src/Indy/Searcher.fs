@@ -80,7 +80,7 @@ let private getMatchingMembers args (names : string seq) dllPath (typeDefinition
         else
             None
 
-    let getRefParts ``type`` =
+    let getRefParts ``type`` foundMembers =
         match ``type`` with
         | Class -> [typeDefinition] |> Seq.cast<MemberReference>
         | Method ->
@@ -107,9 +107,23 @@ let private getMatchingMembers args (names : string seq) dllPath (typeDefinition
             typeDefinition.Events
             |> filterByStatic args (fun e -> e.AddMethod.IsStatic)
             |> Seq.cast<MemberReference>
+        |> Seq.filter (fun mem -> not <| Seq.exists (fun fm -> fm.FullName = mem.FullName) foundMembers)
 
-    args.ElementTypes
-    |> Seq.collect (fun t -> getRefParts t |> Seq.choose (matchRef t))
+    let findMatches foundNames t = getRefParts t foundNames |> Seq.choose (matchRef t)
+    let events = set (findMatches [] Event)
+
+    let nonEvents =
+        args.ElementTypes
+        |> Seq.filter (fun e ->
+            match e with
+            | Event -> false
+            | _ -> true)
+        |> Seq.collect (findMatches events)
+
+    if List.contains Event args.ElementTypes then
+        Seq.concat [nonEvents; events :> SearchResult seq]
+    else
+        nonEvents
 
 /// Runs a search using the given args and list of names to search against.
 let search args (names : string seq) =
