@@ -37,6 +37,7 @@ type SearchArgs = {
     Directory : string
     ElementTypes : ElementType list
     TypeFilter : string option
+    Static : bool option
     NoRecurse : bool
 }
 
@@ -50,6 +51,12 @@ let private filterByTypeFilter<'T> args (nameFunc : 'T -> string) (elements : 'T
     match args.TypeFilter with
     | None -> elements
     | Some t -> filterByName nameFunc t elements
+
+/// Filters the given list by the static filter, if it exists.
+let private filterByStatic<'T> args (staticFunc : 'T -> bool) (elements : 'T seq) =
+    match args.Static with
+    | None -> elements
+    | Some s -> elements |> Seq.filter (fun e -> staticFunc e = s)
 
 /// Given a type definition, returns all matching members from within it.
 let private getMatchingMembers args (names : string seq) dllPath (typeDefinition : TypeDefinition) =
@@ -80,17 +87,26 @@ let private getMatchingMembers args (names : string seq) dllPath (typeDefinition
             typeDefinition.Methods
             |> Seq.filter (fun m -> not m.IsSpecialName)
             |> filterByTypeFilter args (fun m -> m.ReturnType.FullName)
+            |> filterByStatic args (fun m -> m.IsStatic)
             |> Seq.cast<MemberReference>
         | Property ->
+            let methodStatic (m : MethodDefinition) =
+                not (isNull m) && m.IsStatic
+
             typeDefinition.Properties
             |> filterByTypeFilter args (fun p -> p.PropertyType.FullName)
+            |> filterByStatic args (fun p -> methodStatic p.GetMethod || methodStatic p.SetMethod)
             |> Seq.cast<MemberReference>
         | Field ->
             typeDefinition.Fields
             |> Seq.filter (fun f -> not (f.Name.Contains("@") || f.Name.Contains("<")))
             |> filterByTypeFilter args (fun f -> f.FieldType.FullName)
+            |> filterByStatic args (fun f -> f.IsStatic)
             |> Seq.cast<MemberReference>
-        | Event -> typeDefinition.Events |> Seq.cast<MemberReference>
+        | Event ->
+            typeDefinition.Events
+            |> filterByStatic args (fun e -> e.AddMethod.IsStatic)
+            |> Seq.cast<MemberReference>
 
     args.ElementTypes
     |> Seq.collect (fun t -> getRefParts t |> Seq.choose (matchRef t))

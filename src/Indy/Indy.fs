@@ -7,6 +7,7 @@ type Arguments =
     | [<AltCommandLine("-d")>] Directory of string
     | [<AltCommandLine("-e")>] Element_Type of Searcher.ElementType
     | [<AltCommandLine("-t")>] Type_Filter of string
+    | [<AltCommandLine("-s")>] Static of bool
     | [<AltCommandLine("-n")>] No_Recurse
 with
     interface IArgParserTemplate with
@@ -20,6 +21,9 @@ with
             | Type_Filter _ ->
                 "Allows filtering on the type of the search term as well as the name. For properties and fields, this"
                     + " will filter on the type of property or field. For methods, this will filter on the return type."
+            | Static _ ->
+                "Specify either true or false to only search static or instance members."
+                    + " Has no effect on class searches."
             | No_Recurse -> "Search only the directory listed, and not its children."
 
 [<EntryPoint>]
@@ -43,11 +47,8 @@ let main argv =
                         NoRecurse = args.Contains <@ No_Recurse @>
                         ElementTypes = args.GetResults <@ Element_Type @>
                                 |> (fun x -> if List.isEmpty x then Searcher.ElementType.AllTypes else x)
-                        TypeFilter =
-                            if args.Contains <@ Type_Filter @> then
-                                Some <| args.GetResult <@ Type_Filter @>
-                            else
-                                None
+                        TypeFilter = args.TryGetResult <@ Type_Filter @>
+                        Static = args.TryGetResult <@ Static @>
                     }
                     terms
             for result in searchResults do

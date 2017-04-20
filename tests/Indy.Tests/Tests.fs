@@ -14,6 +14,7 @@ let defaultArgs = {
     NoRecurse = false
     ElementTypes = ElementType.AllTypes
     TypeFilter = None
+    Static = None
 }
 
 module Data =
@@ -149,4 +150,32 @@ let elementFilteringTests =
                 (query { defaultArgs with ElementTypes = [Field]; TypeFilter = Some "int" }) 
                 [Data.stField]
                 "Field search."
+
+        testCase "static filtering" <| fun _ ->
+            Expect.equal
+                (query { defaultArgs with Static = Some true })
+                [
+                    Data.stEnum
+                    Data.stDelegate
+                    Data.stType
+                    Data.stMethodStatic
+                    Data.stPropertyStatic
+                    Data.stFieldStatic
+                ]
+                "Static search"
+
+        testCase "non-static filtering" <| fun _ ->
+            Expect.equal
+                (query { defaultArgs with Static = Some false })
+                [
+                    Data.stEnum
+                    Data.stDelegate
+                    Data.stType
+                    Data.stMethod
+                    Data.stProperty
+                    Data.stField
+                    Data.stEventField
+                    Data.stEvent
+                ]
+                "Non-static search"
     ]
