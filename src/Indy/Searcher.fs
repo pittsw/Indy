@@ -105,6 +105,7 @@ let private getMatchingMembers args (names : string seq) dllPath (typeDefinition
             |> Seq.cast<MemberReference>
         | Event ->
             typeDefinition.Events
+            |> filterByTypeFilter args (fun e -> e.EventType.FullName)
             |> filterByStatic args (fun e -> e.AddMethod.IsStatic)
             |> Seq.cast<MemberReference>
         |> Seq.filter (fun mem -> not <| Seq.exists (fun fm -> fm.FullName = mem.FullName) foundMembers)

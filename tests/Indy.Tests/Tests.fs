@@ -52,6 +52,9 @@ module Data =
     let stType = makeClass "SearchTarget" "Indy.Tests.SearchTarget"
     let stEnum = makeClass "SearchTargetEnum" "Indy.Tests.SearchTargetEnum"
     let stDelegate = makeClass "SearchTargetDelegate" "Indy.Tests.SearchTargetDelegate"
+    let stDelegateInClass = makeClass
+                                "SearchTargetDelegateInClass"
+                                "Indy.Tests.SearchTarget/SearchTargetDelegateInClass"
 
     let stMethod = makeMethod
                     "SearchTargetMethod"
@@ -77,9 +80,10 @@ module Data =
     let stEvent = makeEvent
                     "SearchTargetEvent"
                     "Indy.Tests.SearchTargetDelegate Indy.Tests.SearchTarget::SearchTargetEvent"
-    let stEventStatic = makeEvent
-                            "SearchTargetEventStatic"
-                            "Indy.Tests.SearchTargetDelegate Indy.Tests.SearchTarget::SearchTargetEventStatic"
+    let stEventStatic =
+        makeEvent
+            "SearchTargetEventStatic"
+            "Indy.Tests.SearchTarget/SearchTargetDelegateInClass Indy.Tests.SearchTarget::SearchTargetEventStatic"
 
 let query args =
     search args ["SearchTarget"]
@@ -90,7 +94,7 @@ let basicSearchTests =
         testCase "class search" <| fun _ ->
             Expect.equal
                 (query { defaultArgs with ElementTypes = [Class] }) 
-                [Data.stEnum; Data.stDelegate; Data.stType]
+                [Data.stEnum; Data.stDelegate; Data.stType; Data.stDelegateInClass]
                 "Class search."
 
         testCase "method search" <| fun _ ->
@@ -132,24 +136,30 @@ let fileSelectionTests =
 [<Tests>]
 let elementFilteringTests =
     testList "elementFilteringTests" [
-        testCase "method return type" <| fun _ ->
+        testCase "return type" <| fun _ ->
             let args = { defaultArgs with ElementTypes = [Method]; TypeFilter = Some "int" }
             Expect.equal
                 (query args) 
                 [Data.stMethodStatic]
-                "Method search."
+                "Method return type filtering."
 
-        testCase "property type" <| fun _ ->
+        testCase "property type filtering" <| fun _ ->
             Expect.equal
                 (query { defaultArgs with ElementTypes = [Property]; TypeFilter = Some "int" }) 
                 [Data.stProperty]
-                "Property search."
+                "Property type filtering."
 
-        testCase "field type" <| fun _ ->
+        testCase "field type filtering" <| fun _ ->
             Expect.equal
                 (query { defaultArgs with ElementTypes = [Field]; TypeFilter = Some "int" }) 
                 [Data.stField]
-                "Field search."
+                "Field type filtering."
+
+        testCase "event type filtering" <| fun _ ->
+            Expect.equal
+                (query { defaultArgs with ElementTypes = [Event]; TypeFilter = Some "Indy.Tests.SearchTargetDelegate" })
+                [Data.stEvent]
+                "Event type filtering."
 
         testCase "static filtering" <| fun _ ->
             Expect.equal
@@ -162,6 +172,7 @@ let elementFilteringTests =
                     Data.stPropertyStatic
                     Data.stFieldStatic
                     Data.stEventStatic
+                    Data.stDelegateInClass
                 ]
                 "Static search"
 
@@ -176,6 +187,7 @@ let elementFilteringTests =
                     Data.stProperty
                     Data.stField
                     Data.stEvent
+                    Data.stDelegateInClass
                 ]
                 "Non-static search"
     ]

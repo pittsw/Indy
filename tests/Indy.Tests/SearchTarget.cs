@@ -9,6 +9,8 @@
 
     class SearchTarget
     {
+        delegate string SearchTargetDelegateInClass();
+
         int searchTargetField;
         static string searchTargetFieldStatic;
 
@@ -22,6 +24,6 @@
         static string SearchTargetPropertyStatic { get; set; }
 
         event SearchTargetDelegate SearchTargetEvent;
-        static event SearchTargetDelegate SearchTargetEventStatic;
+        static event SearchTargetDelegateInClass SearchTargetEventStatic;
     }
 }
