@@ -73,10 +73,13 @@ module Data =
     let stFieldStatic = makeField
                             "searchTargetFieldStatic"
                             "System.String Indy.Tests.SearchTarget::searchTargetFieldStatic"
-
+                            
     let stEvent = makeEvent
                     "SearchTargetEvent"
                     "Indy.Tests.SearchTargetDelegate Indy.Tests.SearchTarget::SearchTargetEvent"
+    let stEventStatic = makeEvent
+                            "SearchTargetEventStatic"
+                            "Indy.Tests.SearchTargetDelegate Indy.Tests.SearchTarget::SearchTargetEventStatic"
 
 let query args =
     search args ["SearchTarget"]
@@ -111,7 +114,7 @@ let basicSearchTests =
         testCase "event search" <| fun _ ->
             Expect.equal
                 (query { defaultArgs with ElementTypes = [Event] }) 
-                [Data.stEvent]
+                [Data.stEvent; Data.stEventStatic]
                 "Event search."
     ]
 
@@ -158,6 +161,7 @@ let elementFilteringTests =
                     Data.stMethodStatic
                     Data.stPropertyStatic
                     Data.stFieldStatic
+                    Data.stEventStatic
                 ]
                 "Static search"
 

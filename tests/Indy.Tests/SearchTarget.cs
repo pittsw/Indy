@@ -22,5 +22,6 @@
         static string SearchTargetPropertyStatic { get; set; }
 
         event SearchTargetDelegate SearchTargetEvent;
+        static event SearchTargetDelegate SearchTargetEventStatic;
     }
 }
