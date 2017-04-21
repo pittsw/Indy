@@ -43,6 +43,15 @@ type SearchArgs = {
     Verbose : bool
 }
 
+/// Attempts the given operation.  If it fails and Verbose is true, calls logger with the exception.
+let trySeq f logger args =
+    try
+        f()
+    with
+    | e ->
+        if args.Verbose then logger e
+        Seq.empty
+
 /// Performs a case insensitive match on the given element against the given name.
 let private filterByName<'T> (nameFunc : 'T -> string) (name : string) (elements : 'T seq) =
     elements
@@ -138,31 +147,35 @@ let search args (names : string seq) =
                     yield! getAllTypes nt
             }
 
-        try
-            let moduleDef = ModuleDefinition.ReadModule(dllPath)
-            moduleDef.Types
-            |> Seq.collect getAllTypes
-            |> Seq.collect (getMatchingMembers args names dllPath)
-        with
-        | e ->
-            if args.Verbose then
-                eprintfn "Error reading %s: '%s'" dllPath e.Message
-            Seq.empty
+        trySeq
+            (fun () ->
+                let moduleDef = ModuleDefinition.ReadModule(dllPath)
+                moduleDef.Types
+                |> Seq.collect getAllTypes
+                |> Seq.collect (getMatchingMembers args names dllPath))
+            (fun e -> eprintfn "Error reading %s: '%s'" dllPath e.Message)
+            args
 
-    let rec searchHelper curDir = 
-        try
-            seq {
-                let allFiles = ["*.dll"; "*.exe"] |> Seq.collect (fun pat -> Directory.EnumerateFiles(curDir, pat))
-                yield! Seq.collect searchDll allFiles
+    let rec searchHelper curDir =
+        seq {
+            let allFiles =
+                ["*.dll"; "*.exe"]
+                |> Seq.collect (fun pat ->
+                    trySeq
+                        (fun () -> Directory.EnumerateFiles(curDir, pat))
+                        (fun e -> eprintfn "Error enumerating files in %s: '%s'" curDir e.Message)
+                        args)
 
-                if not args.NoRecurse then
-                    for subDir in Directory.EnumerateDirectories(curDir) do
-                        yield! searchHelper subDir
-            }
-        with
-        | e ->
-            if args.Verbose then
-                eprintfn "%A" e
-            Seq.empty
+            yield! Seq.collect searchDll allFiles
+
+            if not args.NoRecurse then
+                let allDirs =
+                    trySeq
+                        (fun () -> Directory.EnumerateDirectories(curDir))
+                        (fun e -> eprintfn "Error enumerating directories in %s: '%s'" curDir e.Message)
+                        args
+                for subDir in allDirs do
+                    yield! searchHelper subDir
+        }
 
     searchHelper <| Path.GetFullPath(args.Directory)
