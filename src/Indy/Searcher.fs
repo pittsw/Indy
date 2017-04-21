@@ -40,6 +40,7 @@ type SearchArgs = {
     TypeFilter : string option
     Static : bool option
     NoRecurse : bool
+    Verbose : bool
 }
 
 /// Performs a case insensitive match on the given element against the given name.
@@ -144,7 +145,8 @@ let search args (names : string seq) =
             |> Seq.collect (getMatchingMembers args names dllPath)
         with
         | e ->
-            eprintfn "Error reading %s: '%s'" dllPath e.Message
+            if args.Verbose then
+                eprintfn "Error reading %s: '%s'" dllPath e.Message
             Seq.empty
 
     let rec searchHelper curDir = 
@@ -159,7 +161,8 @@ let search args (names : string seq) =
             }
         with
         | e ->
-            eprintfn "%A" e
+            if args.Verbose then
+                eprintfn "%A" e
             Seq.empty
 
     searchHelper <| Path.GetFullPath(args.Directory)

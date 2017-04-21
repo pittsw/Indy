@@ -9,6 +9,7 @@ type Arguments =
     | [<AltCommandLine("-t")>] Type_Filter of string
     | [<AltCommandLine("-s")>] Static of bool
     | [<AltCommandLine("-n")>] No_Recurse
+    | [<AltCommandLine("-v")>] Verbose
 with
     interface IArgParserTemplate with
         member s.Usage =
@@ -25,6 +26,7 @@ with
                 "Specify either true or false to only search static or instance members."
                     + " Has no effect on class searches."
             | No_Recurse -> "Search only the directory listed, and not its children."
+            | Verbose -> "Print detailed logs."
 
 [<EntryPoint>]
 let main argv =
@@ -49,6 +51,7 @@ let main argv =
                                 |> (fun x -> if List.isEmpty x then Searcher.ElementType.AllTypes else x)
                         TypeFilter = args.TryGetResult <@ Type_Filter @>
                         Static = args.TryGetResult <@ Static @>
+                        Verbose = args.Contains <@ Verbose @>
                     }
                     terms
             for result in searchResults do

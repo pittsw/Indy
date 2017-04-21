@@ -15,6 +15,7 @@ let defaultArgs = {
     ElementTypes = ElementType.AllTypes
     TypeFilter = None
     Static = None
+    Verbose = false
 }
 
 module Data =
@@ -86,7 +87,7 @@ module Data =
             "Indy.Tests.SearchTarget/SearchTargetDelegateInClass Indy.Tests.SearchTarget::SearchTargetEventStatic"
 
 let query args =
-    search args ["SearchTarget"]
+    search args ["SearchTarget"] |> List.ofSeq
 
 [<Tests>]
 let basicSearchTests =
