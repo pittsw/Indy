@@ -1,6 +1,7 @@
 module Indy.Searcher
 
 open System
+open System.Linq
 open System.IO
 
 open Mono.Cecil
@@ -141,22 +142,24 @@ let search args (names : string seq) =
             moduleDef.Types
             |> Seq.collect getAllTypes
             |> Seq.collect (getMatchingMembers args names dllPath)
-            with
-            | e ->
-                eprintfn "Error reading %s: '%s'" dllPath e.Message
-                Seq.empty
-
-    let searchOption = if args.NoRecurse then SearchOption.TopDirectoryOnly else SearchOption.AllDirectories
-    let searchAll pat = Directory.EnumerateFiles(Path.GetFullPath(args.Directory), pat, searchOption)
-    let allFiles =
-        try
-            ["*.dll"; "*.exe"]
-            |> Seq.collect searchAll
-            |> List.ofSeq
         with
         | e ->
-            eprintfn "Error enumerating files in %s: %s" args.Directory e.Message
-            []
-    allFiles
-    |> Seq.collect searchDll
-    |> List.ofSeq
+            eprintfn "Error reading %s: '%s'" dllPath e.Message
+            Seq.empty
+
+    let rec searchHelper curDir = 
+        try
+            seq {
+                let allFiles = ["*.dll"; "*.exe"] |> Seq.collect (fun pat -> Directory.EnumerateFiles(curDir, pat))
+                yield! Seq.collect searchDll allFiles
+
+                if not args.NoRecurse then
+                    for subDir in Directory.EnumerateDirectories(curDir) do
+                        yield! searchHelper subDir
+            }
+        with
+        | e ->
+            eprintfn "%A" e
+            Seq.empty
+
+    searchHelper <| Path.GetFullPath(args.Directory)
