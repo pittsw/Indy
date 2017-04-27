@@ -43,6 +43,7 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Searcher.fs" />
     <Compile Include="Indy.fs" />
     <None Include="App.config" />
