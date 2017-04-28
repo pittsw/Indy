@@ -1,15 +1,17 @@
 module Indy.Main
 
 open Argu
+open System
 
 type Arguments =
-    | [<MainCommand; ExactlyOnce; Last>] Name of string list
+    | [<MainCommand; Last>] Name of string
     | [<AltCommandLine("-d")>] Directory of string
     | [<AltCommandLine("-e")>] Element_Type of Searcher.ElementType
     | [<AltCommandLine("-t")>] Type_Filter of string
     | [<AltCommandLine("-s")>] Static of bool
     | [<AltCommandLine("-n")>] No_Recurse
     | [<AltCommandLine("-v")>] Verbose
+    | Version
 with
     interface IArgParserTemplate with
         member s.Usage =
@@ -27,14 +29,18 @@ with
                     + " Has no effect on class searches."
             | No_Recurse -> "Search only the directory listed, and not its children."
             | Verbose -> "Print detailed logs."
+            | Version -> "Prints the version of Indy then exits."
 
 [<EntryPoint>]
 let main argv =
     let parser = ArgumentParser.Create<Arguments>(programName = "Indy.exe")
     try
         let args = parser.Parse argv
-        let searchTerm = (args.GetResult <@ Name @>)
+        let searchTerm = (args.GetResults <@ Name @>)
         match searchTerm with
+        | [] ->
+            eprintfn "No search term given."
+            Environment.Exit(1)
         | ["-h"]
         | ["-H"]
         | ["-?"]
@@ -42,20 +48,23 @@ let main argv =
         | ["/H"]
         | ["/?"] -> printfn "%s" <| parser.PrintUsage()
         | terms ->
-            let searchResults =
-                Searcher.search
-                    {
-                        Searcher.SearchArgs.Directory = args.GetResult (<@ Directory @>, ".")
-                        NoRecurse = args.Contains <@ No_Recurse @>
-                        ElementTypes = args.GetResults <@ Element_Type @>
-                                |> (fun x -> if List.isEmpty x then Searcher.ElementType.AllTypes else x)
-                        TypeFilter = args.TryGetResult <@ Type_Filter @>
-                        Static = args.TryGetResult <@ Static @>
-                        Verbose = args.Contains <@ Verbose @>
-                    }
-                    terms
-            for result in searchResults do
-                printfn "%s: %s" result.AssemblyPath result.FullName
+            if args.Contains <@ Version @> then
+                printfn "Indy.NET version %s (Copyright (c) Will Pitts 2017)" AssemblyInfo.Version
+            else
+                let searchResults =
+                    Searcher.search
+                        {
+                            Searcher.SearchArgs.Directory = args.GetResult (<@ Directory @>, ".")
+                            NoRecurse = args.Contains <@ No_Recurse @>
+                            ElementTypes = args.GetResults <@ Element_Type @>
+                                    |> (fun x -> if List.isEmpty x then Searcher.ElementType.AllTypes else x)
+                            TypeFilter = args.TryGetResult <@ Type_Filter @>
+                            Static = args.TryGetResult <@ Static @>
+                            Verbose = args.Contains <@ Verbose @>
+                        }
+                        terms
+                for result in searchResults do
+                    printfn "%s: %s" result.AssemblyPath result.FullName
     with
     | :? ArguParseException as e -> printfn "%s" e.Message
     0 // return an integer exit code
