@@ -1,5 +1,6 @@
 module Indy.Tests.Tests
 
+open System
 open System.CodeDom.Compiler
 open System.IO
 open System.Reflection
@@ -132,6 +133,23 @@ let fileSelectionTests =
                 (query args)
                 []
                 "Searching with TopOnly should exclude child directories."
+
+        testCase "glob support" <| fun _ ->
+            let args =
+                { defaultArgs with
+                    Directory =
+                        // Use String.Join instead of Path.Combine because we have invalid path names.
+                        String.Join(
+                            Path.DirectorySeparatorChar.ToString(),
+                            Path.GetDirectoryName(Path.GetDirectoryName(curDir)),
+                            "**",
+                            Path.GetFileName(curDir))
+                    ElementTypes = [Class]
+                }
+            Expect.equal
+                (query args)
+                [Data.stEnum; Data.stDelegate; Data.stType; Data.stDelegateInClass]
+                "Searching with a glob pattern should work."
     ]
 
 [<Tests>]

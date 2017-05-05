@@ -9,3 +9,4 @@
 #r "System.dll"
 #r "System.Numerics.dll"
 #r "../../../packages/System.ValueTuple/lib/netstandard1.0/System.ValueTuple.dll"
+#r "../../../packages/Glob/lib/net45/Glob.dll"

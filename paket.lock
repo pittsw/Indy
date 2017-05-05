@@ -11,5 +11,6 @@ NUGET
     FAKE (4.56)
     FSharp.Core (4.1.0.2)
       System.ValueTuple (>= 4.3)
+    Glob (0.3.3)
     Mono.Cecil (0.9.6.4)
     System.ValueTuple (4.3)

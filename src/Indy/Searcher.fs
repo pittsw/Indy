@@ -4,6 +4,7 @@ open System
 open System.Linq
 open System.IO
 
+open Glob
 open Mono.Cecil
 
 /// Type of element to search for. Class includes enums and delegates.
@@ -178,4 +179,28 @@ let search args (names : string seq) =
                     yield! searchHelper subDir
         }
 
-    searchHelper <| Path.GetFullPath(args.Directory)
+    let globChars = [|'*'; '?'; '['; ']'; '{'; '}'|]
+    let hasNoGlobChars (directoryPart : string) =
+        not <| Array.exists (fun c -> Array.contains c globChars) (directoryPart.ToCharArray())
+    let directoryParts =
+        args.Directory.Split(
+            [|Path.DirectorySeparatorChar; Path.AltDirectorySeparatorChar|],
+            StringSplitOptions.RemoveEmptyEntries)
+
+    let nonGlobDirs =
+        directoryParts
+        |> Array.takeWhile hasNoGlobChars
+    let globDirs =
+        directoryParts
+        |> Array.skipWhile hasNoGlobChars
+
+    // Use String.Join here instead of Path.Combine since Path.Combine doesn't properly combine the drive letter.
+    let topNonGlobDir = Path.GetFullPath(String.Join(Path.DirectorySeparatorChar.ToString(), nonGlobDirs))
+    let dirs =
+        if Array.isEmpty globDirs then
+            [DirectoryInfo(topNonGlobDir)] :> DirectoryInfo seq
+        else
+            DirectoryInfo(topNonGlobDir).GlobDirectories(Path.Combine(globDirs))
+    dirs
+    |> Seq.map (fun di -> di.FullName)
+    |> Seq.collect searchHelper
