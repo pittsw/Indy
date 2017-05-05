@@ -88,7 +88,9 @@ module Data =
             "Indy.Tests.SearchTarget/SearchTargetDelegateInClass Indy.Tests.SearchTarget::SearchTargetEventStatic"
 
 let query args =
-    search args ["SearchTarget"] |> List.ofSeq
+    let results = ResizeArray<SearchResult>()
+    search args ["SearchTarget"] (fun srs -> results.AddRange(srs))
+    List.ofSeq results
 
 [<Tests>]
 let basicSearchTests =

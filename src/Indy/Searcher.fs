@@ -45,13 +45,13 @@ type SearchArgs = {
 }
 
 /// Attempts the given operation.  If it fails and Verbose is true, calls logger with the exception.
-let trySeq f logger args =
+let tryArray f logger args =
     try
         f()
     with
     | e ->
         if args.Verbose then logger e
-        Seq.empty
+        [||]
 
 /// Performs a case insensitive match on the given element against the given name.
 let private filterByName<'T> (nameFunc : 'T -> string) (name : string) (elements : 'T seq) =
@@ -139,8 +139,8 @@ let private getMatchingMembers args (names : string seq) dllPath (typeDefinition
         nonEvents
 
 /// Runs a search using the given args and list of names to search against.
-let search args (names : string seq) =
-    let searchDll (dllPath : string) : SearchResult seq =
+let search args (names : string seq) dllMatchCallback =
+    let searchDll (dllPath : string) =
         let rec getAllTypes (t : TypeDefinition) =
             seq {
                 yield t
@@ -148,36 +148,37 @@ let search args (names : string seq) =
                     yield! getAllTypes nt
             }
 
-        trySeq
+        tryArray
             (fun () ->
                 let moduleDef = ModuleDefinition.ReadModule(dllPath)
                 moduleDef.Types
                 |> Seq.collect getAllTypes
-                |> Seq.collect (getMatchingMembers args names dllPath))
+                |> Seq.collect (getMatchingMembers args names dllPath)
+                |> Array.ofSeq)
             (fun e -> eprintfn "Error reading %s: '%s'" dllPath e.Message)
             args
+        |> dllMatchCallback
 
     let rec searchHelper curDir =
-        seq {
-            let allFiles =
-                ["*.dll"; "*.exe"]
-                |> Seq.collect (fun pat ->
-                    trySeq
-                        (fun () -> Directory.EnumerateFiles(curDir, pat))
-                        (fun e -> eprintfn "Error enumerating files in %s: '%s'" curDir e.Message)
-                        args)
+        let allFiles =
+            [|"*.dll"; "*.exe"|]
+            |> Array.collect (fun pat ->
+                tryArray
+                    (fun () -> printfn "Enumerating files in %s" curDir; Directory.GetFiles(curDir, pat))
+                    (fun e -> eprintfn "Error enumerating files in %s: '%s'" curDir e.Message)
+                    args)
 
-            yield! Seq.collect searchDll allFiles
+        for file in allFiles do
+            searchDll file
 
-            if not args.NoRecurse then
-                let allDirs =
-                    trySeq
-                        (fun () -> Directory.EnumerateDirectories(curDir))
-                        (fun e -> eprintfn "Error enumerating directories in %s: '%s'" curDir e.Message)
-                        args
-                for subDir in allDirs do
-                    yield! searchHelper subDir
-        }
+        if not args.NoRecurse then
+            let allDirs =
+                tryArray
+                    (fun () -> printfn "Enumerating directories in %s" curDir; Directory.GetDirectories(curDir))
+                    (fun e -> eprintfn "Error enumerating directories in %s: '%s'" curDir e.Message)
+                    args
+            for subDir in allDirs do
+                searchHelper subDir
 
     let globChars = [|'*'; '?'; '['; ']'; '{'; '}'|]
     let hasNoGlobChars (directoryPart : string) =
@@ -203,4 +204,4 @@ let search args (names : string seq) =
             DirectoryInfo(topNonGlobDir).GlobDirectories(Path.Combine(globDirs))
     dirs
     |> Seq.map (fun di -> di.FullName)
-    |> Seq.collect searchHelper
+    |> Seq.iter searchHelper

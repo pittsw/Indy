@@ -51,20 +51,20 @@ let main argv =
             if args.Contains <@ Version @> then
                 printfn "Indy.NET version %s (Copyright (c) Will Pitts 2017)" AssemblyInfo.Version
             else
-                let searchResults =
-                    Searcher.search
-                        {
-                            Searcher.SearchArgs.Directory = args.GetResult (<@ Directory @>, ".")
-                            NoRecurse = args.Contains <@ No_Recurse @>
-                            ElementTypes = args.GetResults <@ Element_Type @>
-                                    |> (fun x -> if List.isEmpty x then Searcher.ElementType.AllTypes else x)
-                            TypeFilter = args.TryGetResult <@ Type_Filter @>
-                            Static = args.TryGetResult <@ Static @>
-                            Verbose = args.Contains <@ Verbose @>
-                        }
-                        terms
-                for result in searchResults do
-                    printfn "%s: %s" result.AssemblyPath result.FullName
+                Searcher.search
+                    {
+                        Searcher.SearchArgs.Directory = args.GetResult (<@ Directory @>, ".")
+                        NoRecurse = args.Contains <@ No_Recurse @>
+                        ElementTypes = args.GetResults <@ Element_Type @>
+                                |> (fun x -> if List.isEmpty x then Searcher.ElementType.AllTypes else x)
+                        TypeFilter = args.TryGetResult <@ Type_Filter @>
+                        Static = args.TryGetResult <@ Static @>
+                        Verbose = args.Contains <@ Verbose @>
+                    }
+                    terms
+                    (fun searchResults ->
+                        for result in searchResults do
+                            printfn "%s: %s" result.AssemblyPath result.FullName)
     with
     | :? ArguParseException as e -> printfn "%s" e.Message
     0 // return an integer exit code
