@@ -2,6 +2,7 @@ module Indy.Main
 
 open Argu
 open System
+open System.Diagnostics
 
 type Arguments =
     | [<MainCommand; Last>] Name of string
@@ -67,4 +68,7 @@ let main argv =
                             printfn "%s: %s" result.AssemblyPath result.FullName)
     with
     | :? ArguParseException as e -> printfn "%s" e.Message
+    if Debugger.IsAttached then
+        printfn "Press a key to exit..."
+        Console.ReadKey() |> ignore
     0 // return an integer exit code

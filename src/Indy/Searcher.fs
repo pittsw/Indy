@@ -138,6 +138,56 @@ let private getMatchingMembers args (names : string seq) dllPath (typeDefinition
     else
         nonEvents
 
+let private getTopDirs args =
+    let globChars = [|'*'; '?'; '['; ']'; '{'; '}'|]
+    let hasNoGlobChars (directoryPart : string) =
+        not <| Array.exists (fun c -> Array.contains c globChars) (directoryPart.ToCharArray())
+    let directoryParts =
+        args.Directory.Split(
+            [|Path.DirectorySeparatorChar; Path.AltDirectorySeparatorChar|],
+            StringSplitOptions.RemoveEmptyEntries)
+
+    let nonGlobDirs =
+        directoryParts
+        |> Array.takeWhile hasNoGlobChars
+
+    // Use String.Join here instead of Path.Combine since Path.Combine doesn't properly combine the drive letter.
+    let topNonGlobDir = Path.GetFullPath(String.Join(Path.DirectorySeparatorChar.ToString(), nonGlobDirs))
+    let globDirs =
+        directoryParts
+        |> Array.skipWhile hasNoGlobChars
+    let globs =
+        globDirs
+        |> Seq.scan (fun s t ->
+            match s with
+            | None -> Some t
+            | Some s2 -> Some (sprintf "%s%c%s" s2 Path.DirectorySeparatorChar t)) None
+        |> Seq.map (fun s ->
+            let patternPart =
+                match s with
+                | None -> ""
+                | Some s2 -> sprintf "%c%s" Path.DirectorySeparatorChar s2
+            Glob(sprintf "%s%s" topNonGlobDir patternPart, GlobOptions.Compiled))
+        |> Array.ofSeq
+
+    let rec findDirs depth curDir =
+        let isPartialMatch = (Array.length globs = 1) || (globs.[Math.Min(globs.Length - 1, depth)].IsMatch(curDir))
+        if isPartialMatch then
+            let isFullMatch = (Array.length globs = 1) || (globs.[globs.Length - 1].IsMatch(curDir))
+            if isFullMatch then
+                [|curDir|]
+            else
+                tryArray
+                    (fun () -> Directory.GetDirectories(curDir))
+                    (fun e -> eprintfn "Error enumerating directories under %s: %s" curDir e.Message)
+                    args
+                |> Array.collect (findDirs (depth + 1))
+        else
+            [||]
+
+    findDirs 0 topNonGlobDir
+
+
 /// Runs a search using the given args and list of names to search against.
 let search args (names : string seq) dllMatchCallback =
     let searchDll (dllPath : string) =
@@ -160,48 +210,25 @@ let search args (names : string seq) dllMatchCallback =
         |> dllMatchCallback
 
     let rec searchHelper curDir =
-        let allFiles =
-            [|"*.dll"; "*.exe"|]
-            |> Array.collect (fun pat ->
-                tryArray
-                    (fun () -> printfn "Enumerating files in %s" curDir; Directory.GetFiles(curDir, pat))
-                    (fun e -> eprintfn "Error enumerating files in %s: '%s'" curDir e.Message)
-                    args)
+            let allFiles =
+                [|"*.dll"; "*.exe"|]
+                |> Array.collect (fun pat ->
+                    tryArray
+                        (fun () -> printfn "Enumerating files in %s" curDir; Directory.GetFiles(curDir, pat))
+                        (fun e -> eprintfn "Error enumerating files in %s: '%s'" curDir e.Message)
+                        args)
 
-        for file in allFiles do
-            searchDll file
+            for file in allFiles do
+                searchDll file
 
-        if not args.NoRecurse then
-            let allDirs =
-                tryArray
-                    (fun () -> printfn "Enumerating directories in %s" curDir; Directory.GetDirectories(curDir))
-                    (fun e -> eprintfn "Error enumerating directories in %s: '%s'" curDir e.Message)
-                    args
-            for subDir in allDirs do
-                searchHelper subDir
-
-    let globChars = [|'*'; '?'; '['; ']'; '{'; '}'|]
-    let hasNoGlobChars (directoryPart : string) =
-        not <| Array.exists (fun c -> Array.contains c globChars) (directoryPart.ToCharArray())
-    let directoryParts =
-        args.Directory.Split(
-            [|Path.DirectorySeparatorChar; Path.AltDirectorySeparatorChar|],
-            StringSplitOptions.RemoveEmptyEntries)
-
-    let nonGlobDirs =
-        directoryParts
-        |> Array.takeWhile hasNoGlobChars
-    let globDirs =
-        directoryParts
-        |> Array.skipWhile hasNoGlobChars
-
-    // Use String.Join here instead of Path.Combine since Path.Combine doesn't properly combine the drive letter.
-    let topNonGlobDir = Path.GetFullPath(String.Join(Path.DirectorySeparatorChar.ToString(), nonGlobDirs))
-    let dirs =
-        if Array.isEmpty globDirs then
-            [DirectoryInfo(topNonGlobDir)] :> DirectoryInfo seq
-        else
-            DirectoryInfo(topNonGlobDir).GlobDirectories(Path.Combine(globDirs))
-    dirs
-    |> Seq.map (fun di -> di.FullName)
+            if not args.NoRecurse then
+                let allDirs =
+                    tryArray
+                        (fun () -> printfn "Enumerating directories in %s" curDir; Directory.GetDirectories(curDir))
+                        (fun e -> eprintfn "Error enumerating directories in %s: '%s'" curDir e.Message)
+                        args
+                for subDir in allDirs do
+                    searchHelper subDir
+    
+    getTopDirs args
     |> Seq.iter searchHelper
