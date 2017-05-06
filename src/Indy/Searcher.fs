@@ -6,6 +6,7 @@ open System.IO
 
 open Glob
 open Mono.Cecil
+open System.Threading.Tasks
 
 /// Type of element to search for. Class includes enums and delegates.
 type ElementType =
@@ -227,8 +228,9 @@ let search args (names : string seq) dllMatchCallback =
                         (fun () -> Directory.GetDirectories(curDir))
                         (fun e -> eprintfn "Error enumerating directories in %s: '%s'" curDir e.Message)
                         args
-                for subDir in allDirs do
-                    searchHelper subDir
+                allDirs
+                |> Array.map (fun dir -> Task.Run(fun () -> searchHelper dir))
+                |> Task.WaitAll
     
     getTopDirs args
     |> Seq.iter searchHelper
