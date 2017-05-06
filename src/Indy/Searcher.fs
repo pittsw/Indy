@@ -214,7 +214,7 @@ let search args (names : string seq) dllMatchCallback =
                 [|"*.dll"; "*.exe"|]
                 |> Array.collect (fun pat ->
                     tryArray
-                        (fun () -> printfn "Enumerating files in %s" curDir; Directory.GetFiles(curDir, pat))
+                        (fun () -> Directory.GetFiles(curDir, pat))
                         (fun e -> eprintfn "Error enumerating files in %s: '%s'" curDir e.Message)
                         args)
 
@@ -224,7 +224,7 @@ let search args (names : string seq) dllMatchCallback =
             if not args.NoRecurse then
                 let allDirs =
                     tryArray
-                        (fun () -> printfn "Enumerating directories in %s" curDir; Directory.GetDirectories(curDir))
+                        (fun () -> Directory.GetDirectories(curDir))
                         (fun e -> eprintfn "Error enumerating directories in %s: '%s'" curDir e.Message)
                         args
                 for subDir in allDirs do
